@@ -1,0 +1,42 @@
+<div class="container text-center">
+    <div class="row">
+        <div class="col">
+            <div id="pages"></div>
+            <div id="artists">
+                {{#each artists as | artist |}}
+                    <div id="{{artist.id}}"><span class="numbers">{{artist.number}}.</span>
+                        <a href="{{artist.url}}">
+                            <button type="button" class="btn btn-light btn-sm {{artist.buttonState}}">
+                                &nbsp;{{artist.name}}&nbsp;
+                            </button>
+                        </a>
+                        <span class="stars">
+                            {{#each  artist.stars as | star |}}
+                                <i stars="{{star.number}}" class="fa-solid fa-star"></i>
+                            {{/each}}
+                            {{#each  artist.starsEmpty as | star |}}
+                                <i stars="{{star.number}}" class="fa-regular fa-star"></i>
+                            {{/each}}
+                        </span>
+                        {{#if artist.details}}
+                            <div id='details' class='tiny'>
+                                <h5>Albums</h5>
+                                <div id='albums'>
+                                    {{{artist.details.albums}}}
+                                </div>
+                                <h5>On Playlists</h5>
+                                <div id='playlists'>
+                                    {{{artist.details.playlists}}}
+                                </div>
+                                <h5>Genres</h5>
+                                <div id='genres'>
+                                    {{{artist.details.genres}}}
+                                </div>
+                            </div>
+                        {{/if}}
+                    </div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div>

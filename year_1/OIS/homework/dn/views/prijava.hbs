@@ -1,0 +1,111 @@
+<div class="container text-center pb-0">
+    <div class="row">
+        <div class="col-md-6">
+            <h3><i class="fa-solid fa-filter-circle-dollar"></i>Pregled dopustov</h3>
+            <div>
+                <form
+                        action="/izpisiRacunBaza"
+                        method="post"
+                        enctype="multipart/form-data"
+                >
+                    <div>
+                        <select
+                                size="13"
+                                id="seznamRacunov"
+                                name="seznamRacunov"
+                                class="form-control form-control-sm odmik"
+                        >
+                            {{#each seznamRacunov as |racun|}}
+                                <option
+                                        value="{{racun.InvoiceId}}"
+                                        customerId="{{racun.CustomerId}}"
+                                        selected
+                                >
+                                    {{racun.Naziv}}
+                                </option>
+                            {{/each}}
+                        </select>
+                    </div>
+                    <div>
+                        <input
+                                type="submit"
+                                id="podrobnostiIzleta"
+                                class="btn btn-secondary btn-sm"
+                                value="Podrobnosti izleta"
+                        />
+                    </div>
+                </form>
+                <div class="help-block"><small id="skupnaCenaIzleta"></small></div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <h3><i class="fa-regular fa-hand-point-right"></i>Izbira uporabnika</h3>
+            <div>
+                <select
+                        size="13"
+                        id="seznamStrank"
+                        name="seznamStrank"
+                        class="form-control form-control-sm odmik"
+                >
+                    {{#each seznamStrank as |stranka|}}
+                        <option value="{{stranka.CustomerId}}">
+                            {{{stranka.Country}}}
+                            |
+                            {{stranka.FirstName}}
+                            {{stranka.LastName}},
+                            {{stranka.Email}}
+                            {{#if stranka.Company}}
+                                ({{stranka.Company}})
+                            {{/if}}
+                        </option>
+                    {{/each}}
+                </select>
+            </div>
+            <div class="help-block pt-1"><small id="podrobnostiIzbraneStranke"></small></div>
+            <br/>
+        </div>
+
+        <div class="col-md-6">
+            <h3><i class="fa-solid fa-table"></i>Statistika v tabeli</h3>
+            <span>V tabeli je navedena osnovna statistika o uporabnikih.</span>
+
+            <table>
+                <tr>
+                    <td>Osnovno</td>
+                    <td>Uporabniki</td>
+                </tr>
+                <tr>
+                    <th>Zaposlenih</th>
+                    <th>Št. različnih držav</th>
+                    <th>Vsi</th>
+                </tr>
+                <tr>
+                    <td>{{ statistika.zaposlenih }}</td>
+                    <td>{{ statistika.razlicne_drzave }}</td>
+                    <td>{{ statistika.vsi }}</td>
+                </tr>
+                <tr>
+                    <th>Komunikacija</th>
+                    <th>Faks</th>
+                    <th>Telefon</th>
+                    <th>Email</th>
+                </tr>
+                <tr>
+                    <td>{{ statistika.faks }}</td>
+                    <td>{{ statistika.telefon }}</td>
+                    <td>{{ statistika.komunikacija.email }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h3><i class="fa-solid fa-chart-pie"></i>Vizualizacija podatkov</h3>
+            <span>V grafu prikažite poljubno vizualizacijo podatkov: podatkovna baza, zunanji vir ali oboje.</span>
+            <div id="vsebnikGrafa" style="height: 300px; width: 100%; background-color: lightgray"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"/>
+<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+<script src="skripte/prijava.js"></script>

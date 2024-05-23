@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>..:: FriBox ::..</title>
+    <meta charset="UTF-8" />
+
+    <link rel="stylesheet" type="text/css" href="stili.css" />
+    <link rel="stylesheet" type="text/css" href="spinner.css" />
+    <script src="skripta.js"></script>
+  </head>
+  <body>
+    <div class="loading" style="display: none">Prosimo, počakajte ...</div>
+
+    <!-- GLAVA -->
+    <glava>
+      <table style="width: calc(100% - 20px)">
+        <tr>
+          <td>
+            <img src="fribox.png" />
+          </td>
+          <td style="float: right">
+            <form action="/nalozi" method="post" enctype="multipart/form-data">
+              <input
+                type="file"
+                id="datoteka"
+                style="height: 50px; margin-right: 20px"
+                name="upload"
+              />
+              <button id="nalozi" class="rob senca" type="submit">
+                Naloži novo datoteko
+              </button>
+            </form>
+          </td>
+        </tr>
+      </table>
+    </glava>
+
+    <!-- TELO -->
+    <telo id="datoteke" class="senca rob"> </telo>
+
+    <!-- NOGA -->
+    <noga>
+      <img src="fri.png" width="100px" />
+    </noga>
+  </body>
+</html>

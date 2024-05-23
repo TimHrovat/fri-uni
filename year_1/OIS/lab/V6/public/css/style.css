@@ -1,0 +1,11 @@
+.pesem button {
+  width: 100%;
+  margin-bottom: 5px;
+}
+i.fa-solid {
+  padding-right: 5px;
+}
+h3 {
+  padding-top: 20px;
+  padding-bottom: 10px;
+}

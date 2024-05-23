@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>..:: Opomniki ::..</title>
+    <meta charset="UTF-8"/>
+
+    <link rel="stylesheet" href="stili.css"/>
+    <script type="text/javascript" lang="js" src="./skripta.js"></script>
+</head>
+<body>
+
+<!-- GLAVA -->
+<glava>
+    <img style="float: left;" alt="FRI logotip" width="150" src="fri.png"/>
+    <h1>Pozdravljeni, <span id="uporabnik">gost</span>!</h1>
+</glava>
+
+<!-- NAVIGACIJA -->
+<navigacija class="senca rob">
+    <ul>
+        <li><a class="nepomembno element" href="#">Domov</a></li>
+        <li><a class="nepomembno element" href="#">Zanimivosti</a></li>
+        <li><a class="element" href="#">Opomniki</a></li>
+        <li><a class="nepomembno element" href="#">Kontakt</a></li>
+    </ul>
+
+    <form>
+        <input type="text" placeholder="Vnesite iskalni niz"/>
+
+        <input type="submit" value="Išči" disabled/>
+    </form>
+</navigacija>
+
+<!-- TELO -->
+<telo>
+    <vsebina class="senca rob">
+        <img id="vreme" src="./slike/sonceOblaki.png" alt="Primer vremena"/>
+        <h3>Aktivni opomniki</h3>
+        <!-- JEDRO -->
+        <jedro id="opomniki"></jedro>
+    </vsebina>
+
+    <desni-meni class="senca rob">
+        <h2>Vremenska napoved</h2>
+
+        <table>
+            <tr class="osnovna">
+                <th rowspan="8">Teden</th>
+                <th>Min. (°C)</th>
+                <th>Maks. (°C)</th>
+                <th>Padavine (%)</th>
+            </tr>
+            <tr>
+                <td>17</td>
+                <td>33</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>22</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>-3</td>
+                <td>7</td>
+                <td>12</td>
+            </tr>
+            <tr>
+                <td>-3</td>
+                <td>7</td>
+                <td>12</td>
+            </tr>
+            <tr>
+                <td>-1</td>
+                <td>8</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>8</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>6</td>
+                <td>15</td>
+            </tr>
+        </table>
+
+        <h2>Sorodno</h2>
+        <ul>
+            <li>
+                <a href="https://www.youtube.com/user/rcfri" target="_blank"
+                >FRI Youtube kanal</a
+                >
+            </li>
+            <li><a href="https://teaching.lavbic.net/OIS" target="_blank">OIS</a></li>
+        </ul>
+
+        <div class="kvadrat-vsebnik">
+            <div class="kvadrat">
+                <div class="kvadrat">
+                    <div class="kvadrat">
+                        <div class="kvadrat"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </desni-meni>
+</telo>
+
+<!-- NOGA -->
+<noga class="senca rob">
+    <div class="pokrivalo">
+        <table id="uporabniskiObrazec">
+            <tr>
+                <td>Vnesite vaše ime: <input id="uporabnisko_ime"/></td>
+                <td>
+                    <input id="prijavniGumb" type="button" value="Potrdi"/>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <table>
+        <tr>
+            <td>Naziv zadolžitve: <input id="naziv_opomnika"/></td>
+            <td>Čas opomnika [s]: <input id="cas_opomnika"/></td>
+            <td>
+                <input
+                        class="shadow"
+                        id="dodajGumb"
+                        type="button"
+                        value="Dodaj opomnik"
+                />
+            </td>
+        </tr>
+    </table>
+    <br/>
+</noga>
+
+</body>
+</html>

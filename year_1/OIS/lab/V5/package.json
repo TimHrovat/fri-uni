@@ -1,0 +1,12 @@
+{
+  "name": "v5",
+  "version": "0.0.1",
+  "description": "Pregled pesmi iz podatkovne baze",
+  "author": "Dejan Lavbič <Dejan@lavbic.net> & Sandi Gec <sandi.gec@fri.uni-lj.si>",
+  "dependencies": {
+    "express": "*",
+    "hbs": "*",
+    "sqlite3": "*"
+  },
+  "private": true
+}

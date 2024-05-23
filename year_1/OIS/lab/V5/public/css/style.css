@@ -1,0 +1,63 @@
+.tiny {
+  font-size: 0.7em;
+}
+
+.btn {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 1px 1px 1px #aaaaaa;
+}
+
+.selected {
+  font-weight: bold;
+  background-color: #eaeaea;
+}
+
+.fa-star {
+  cursor: pointer;
+}
+
+.fa-star:hover {
+  color: darkred !important;
+}
+
+.numbers {
+  width: 15%;
+  float: left;
+  text-align: right;
+  padding-right: 4px;
+  margin-top: 4px;
+}
+
+.stars {
+  width: 15%;
+  float: right;
+  text-align: left;
+  padding-left: 6px;
+  margin-top: 4px;
+}
+
+#artists button {
+  width: 70%;
+  margin-bottom: 8px;
+}
+
+#pages {
+  padding: 8px 16px 24px 16px;
+}
+
+#details {
+  margin-bottom: 24px;
+}
+
+p {
+  margin: 10px;
+}
+
+h5 {
+  margin-top: 10px;
+}
+
+.fa-info-circle {
+  padding-left: 5px;
+}

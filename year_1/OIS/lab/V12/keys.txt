@@ -1,0 +1,32 @@
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+Truffle Develop started at http://127.0.0.1:9545/
+
+Accounts:
+(0) 0x64d11bb4014466be992ebc660f08d4aaa7fda445
+(1) 0x0f84209933907bbfbafc730b41309afa48e88748
+(2) 0xab97fb81429ab40c8bb8e114d72b57b2d598cbf1
+(3) 0xeda253aa952b88e689c080159e89e18d9916e54b
+(4) 0x1569f57ac94797eb51e98a9d6e75594ea3df62c8
+(5) 0xfd4ab458990bf84e5763962892f933103f93e400
+(6) 0xed9e2b9dd0103d44b7fa7749e27cf7b1ec4f93f0
+(7) 0xfdb71510a5b13b1b79bfdaa50e5d89cc32cb6eed
+(8) 0x7ca7fad36b4ef10c3ecb11a483c41d6e96ee88d8
+(9) 0x31fe5adb30f45a9858d6b383add66e63f59ceceb
+
+Private Keys:
+(0) badefea4d8508587ef51b527d1170f598a228a129f892a0f5648e8c52006ba53
+(1) 90e079d20ddec7ace4dee82c2cb0748427f62185a46968166db2f215d2b35000
+(2) a7422c1dbe5a52bdcd2d5fe6a5b46471585729084f75dba8c97f6401e60fb0a5
+(3) 862d2a746446a0e43acbdcfa4bbe1b15760ab3b0045a2320cd0df15f89738f68
+(4) c6d43daaf994fe7927e53a04a7bb8b1cf720ee26d0342285aa4c9214bdea73be
+(5) 738ab2a41c41ffb902801e9de55e539b6e78ad92a6baa861180e59197e2c51e2
+(6) 605b2f8017154952794af164f3c90af1bb54e597021c6ecf9edaadebc5e9f04f
+(7) 8be495d5685c6850a5ff69b86b64c05de5a9f03fa0e5b1d85a5e6d0c28f18380
+(8) 9f21c8ac8fec6f7056fce0be2c43ede7566e9c434f74da4c97a79aa7f4eccb5f
+(9) dafb8154843c7199243ad5605c561931f6866092b3fc613085ff454cb9ea0dde
+
+Mnemonic: top captain eight chair common whale battle leave close mind circle photo
+
+⚠️  Important ⚠️  : This mnemonic was created for you by Truffle. It is not secure.
+Ensure you do not use it on production blockchains, or else you risk losing funds.
+

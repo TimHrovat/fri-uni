@@ -1,0 +1,12 @@
+{
+  "name": "eracun",
+  "description": "Seja, nakupovalna košarica, XML in e-SLOG",
+  "author": "Dejan Lavbič <Dejan@lavbic.net>",
+  "dependencies": {
+    "express": "*",
+    "express-session": "*",
+    "hbs": "*",
+    "sqlite3": "*"
+  },
+  "private": true
+}

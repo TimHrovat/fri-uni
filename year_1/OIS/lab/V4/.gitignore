@@ -1,0 +1,4 @@
+# ignore JetBrains WebStorm project configuration content
+.idea
+.DS_Store
+node_modules

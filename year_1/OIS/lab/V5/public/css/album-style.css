@@ -1,0 +1,29 @@
+h3{
+    color:darkblue;
+    font-style: italic;
+}
+
+th{
+    border-bottom: 1px solid darkgray;
+}
+
+th,td{
+    padding: 5px;
+}
+
+tr:not(:last-child){
+    border-bottom: 1px solid darkgray;
+}
+
+td{
+    padding: 5px;
+}
+
+th:not(:first-child),td:not(:first-child){
+    border-left: 1px solid darkgray;
+}
+
+
+table{
+    margin: 0 auto;
+}

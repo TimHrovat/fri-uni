@@ -1,0 +1,75 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+glava {
+  margin-top: 10px;
+  margin-left: 20px;
+}
+
+noga {
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+
+telo {
+  flex: auto;
+  margin: 10px;
+  width: calc(100% - 50px);
+  overflow: auto;
+  padding: 10px;
+}
+
+.datoteka {
+  margin: 0px;
+  margin-bottom: 5px;
+  position: relative;
+  height: 20px;
+  width: calc(100% - 25px);
+  float: left;
+  padding: 10px;
+}
+
+.naziv_datoteke {
+  position: relative;
+  float: left;
+}
+
+.akcije {
+  position: relative;
+  float: right;
+  color: #c30c21;
+}
+
+.akcije span:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+a {
+  color: inherit;
+  text-decoration: blink;
+}
+
+.rob {
+  border: 1px solid transparent;
+  border-color: #c30c21;
+  border-radius: 4px;
+}
+
+.senca {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+#nalozi {
+  width: 200px;
+  background: white;
+  height: 50px;
+  font-size: 18px;
+}

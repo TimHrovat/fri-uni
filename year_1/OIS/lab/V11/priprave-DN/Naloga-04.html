@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Naloga 04</title>
+</head>
+<body>
+
+<img alt="Ni slike tabele" src="./../img/Naloga-04-tabela.png">
+
+<hr>
+Izpolnite manjkakočo vsebino v nizih 'ODGOVOR', da bo spodnja tabela enaka zgornji sliki tabele. Z velikostjo tabele se ne ukvarjate.
+<hr>
+
+<style>
+    th {
+        color: darkred;
+    }
+
+    #neviden {
+        visibility: hidden;
+    }
+
+    .podatki {
+        border-style: dashed;
+        border-color: yellowgreen;
+        border-width: 2px;
+    }
+
+    table tr td barva-ozadja{
+        background-color: lightblue;
+        font-weight: bold;
+    }
+
+</style>
+
+<table style="border-bottom: 3px dotted darkgray;">
+    <tr>
+        <td colspan="2" style="text-align: center"><barva-ozadja>Osnovno</barva-ozadja></td>
+        <td id="neviden">Uporabniki</td>
+    </tr>
+    <tr>
+        <th>Zaposlenih</th>
+        <th>Št. različnih držav</th>
+        <th>Vsi</th>
+    </tr>
+    <tr >
+        <td class="podatki">1</td>
+        <td class="podatki">2</td>
+        <td class="podatki">3</td>
+    </tr>
+    <tr>
+        <th>Komunikacija</th>
+        <th>Faks</th>
+        <th>Telefon</th>
+    </tr>
+    <tr style="text-align: center">
+        <td>4</td>
+        <td>5</td>
+        <td><button>6</button></td>
+    </tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,127 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+    <meta name="description" content=""/>
+    <meta name="author" content=""/>
+    <!--[if IE]>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <![endif]-->
+    <title>Klepetalnica</title>
+
+    <!-- Boostrap stili -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+    <!-- JavaScript knjižnice in lastna skripta -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.10.0/web3.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/skripta.js" type="text/javascript"></script>
+
+    <!-- Ikone Font Awsome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <link rel="stylesheet" href="css/stili.css"/>
+</head>
+<body>
+<div class="container">
+    <div class="row pt-2 text-center">
+        <h3 class="text-center mb-4"><i class="fa-solid fa-gift"></i> Donirajmo kriptovalute</h3>
+        <div class="col-md-2">
+            <span class="text-muted">1.<small>
+                <a onclick="prikaziUstvariPrijavaFormo(true)" href="#">Ustvarite račun</a> ali <a
+                    onclick="prikaziUstvariPrijavaFormo(false)" href="#">se prijavite</a></small></span>
+            <hr>
+            <form id="ustvari-forma">
+                <span class="text-muted">Ustvarite račun</span>
+                <div class="mb-3">
+                    <label for="geslo-ustvari" class="col-form-label">Geslo:</label>
+                    <input type="password" class="form-control" id="geslo-ustvari">
+                </div>
+                <button type="button" id="ustvari-racun" class="btn btn-success mb-2">
+                    Ustvarite <i class='fa-brands fa-ethereum'></i> račun
+                </button>
+            </form>
+            <form id="prijava-forma">
+                <span class="text-muted">Prijava z računom</span>
+                <div class="mb-3">
+                    <label for="denarnica-prijava" class="col-form-label">Denarnica:</label>
+                    <input type="text" class="form-control" id="denarnica-prijava">
+                </div>
+                <div class="mb-3">
+                    <label for="geslo-prijava" class="col-form-label">Geslo:</label>
+                    <input type="password" class="form-control" id="geslo-prijava">
+                </div>
+                <button type="button" id="prijava-racuna" class="btn btn-success mb-2">
+                    Prijava z <i class='fa-brands fa-ethereum'></i> računom
+                </button>
+            </form>
+            <p id="eth-racun" class="ms-3 mt-1">Račun ni izbran</p>
+            <div id="napakaPrijava"></div>
+        </div>
+        <div class="col-md-4">
+            <span class="dela text-muted">2.<small> Izberite prejemnika donacije</small></span>
+            <hr>
+            <div class="card border-dark text-start">
+                <div class="card-header text-white bg-success opacity-75">
+                    Kandidati za donacije
+                </div>
+                <div class="card-body" id="kandidati"></div>
+                <div class="card-footer bg-light border-success">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Nobena denarnica ni izbrana"
+                               id="izbrana-denarnica" disabled/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <span class="text-muted">3.<small> Izvedite donacijo</small></span>
+            <hr>
+            <div class="input-group mb-2">
+                <input type="number" class="form-control" placeholder="0.2"
+                       id="visina-donacije" min="0" max="99" step="0.01"/><span class="form-control">ETH</span>
+            </div>
+            <button type="button" id="gumb-doniraj-start" class="btn btn-success" disabled><i class="fa-solid fa-hand-holding-dollar"></i>
+                Doniraj
+            </button>
+            <p id="donacija-odgovor" class="ms-3 mt-1"></p>
+        </div>
+
+        <div class="col-md-4 h-auto">
+            <span class="text-muted"><small> Pregled donacij v verigi blokov</small></span>
+            <hr>
+            <div class="card border-dark text-start">
+                <div class="card-header text-white bg-success opacity-75">
+                    Seznam donacij
+                </div>
+                <div class="card-body">
+                    <span id="donacije-sporocilo" class="text-muted">Noben kandidat za donacije ni izbran</span>
+                    <table class="table" id="tabela-donacij">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Zgoščena vrednost transakcije</th>
+                            <th scope="col">Pošiljatelj</th>
+                            <!--                            <th scope="col">Prejemnik</th>-->
+                            <th scope="col">Višina donacije</th>
+                        </tr>
+                        </thead>
+                        <tbody id="seznam-donacij">
+                        <tr>
+                            <th scope="row">1</th>
+                            <td>0x0...000</td>
+                            <td>0x0...000</td>
+                            <!--                            <td>0x0...000</td>-->
+                            <td>0.1 <i class='fa-brands fa-ethereum'></i></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

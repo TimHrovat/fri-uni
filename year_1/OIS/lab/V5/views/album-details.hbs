@@ -1,0 +1,27 @@
+<link rel="stylesheet" href="/css/album-style.css"/>
+
+<div class="container text-center">
+    <div class="row">
+        <div class="col">
+            <h3>{{artist}} <i class="fa-solid fa-microphone"></i> {{albumTitle}}</h3>
+            <table>
+                <tr>
+                    <th>Track name <i class="fa-solid fa-compact-disc"></i></th>
+                    <th>Duration [min, sec] <i class="fa-regular fa-clock"></i></th>
+                    <th>Size [MB] <i class="fa-solid fa-ruler"></i></th>
+                    <th>Media Type <i class="fa-solid fa-radio"></i></th>
+                    <th>Unit price [USD] <i class="fa-solid fa-money-check-dollar"></i></th>
+                </tr>
+                {{#each tracks as | track |}}
+                    <tr>
+                        <td>{{track.TrackName}}</td>
+                        <td>{{track.Minutes}} min, {{track.Seconds}} sec</td>
+                        <td>{{track.MB}}</td>
+                        <td>{{track.MediaTypeName}}</td>
+                        <td>{{track.PriceUSD}}</td>
+                    </tr>
+                {{/each}}
+            </table>
+        </div>
+    </div>
+</div>

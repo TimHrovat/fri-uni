@@ -1,0 +1,1743 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" 
+          "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>Prikaz rezultatov testiranja</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <style>
+            .tableBase { border-collapse: collapse; }
+            .tableBase > tbody > tr > td { border: 1px solid black; padding: 7px;}
+            .tableResults { table-layout: fixed; border-spacing: 0px; border-collapse: separate; }
+            table#nasredini { margin-left:auto; margin-right:auto; }
+            table tbody td.hoverOk {background-color:#9F9; border: 1px solid #63B563; width: 15px; color: black; text-align: center; }
+            .hoverOk:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #63B563; }
+            .hoverOk:hover td { background: transparent; }
+            .hoverOk > a:link, .hoverOk > a:visited, .hoverOk > a:hover, .hoverOk > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverErr {background-color:#FFBF00; border: 1px solid #CB9800; width: 15px; color: black; text-align: center; }
+            .hoverErr:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #CB9800; }
+            .hoverErr:hover td { background: transparent; }
+            .hoverErr > a:link, .hoverErr > a:visited, .hoverErr > a:hover, .hoverErr > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverRuntime {background-color:#FF9; border: 1px solid #D8D87E; width: 15px; color: black; text-align: center; }
+            .hoverRuntime:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #D8D87E; }
+            .hoverRuntime:hover td { background: transparent; }
+            .hoverRuntime > a:link, .hoverRuntime > a:visited, .hoverRuntime > a:hover, .hoverRuntime > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverCompile {background-color:#C00000; border: 1px solid #710B0B; width: 15px; color: black; text-align: center; }
+            .hoverCompile:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #710B0B; }
+            .hoverCompile:hover td { background: transparent; }
+            .hoverCompile > a:link, .hoverCompile > a:visited, .hoverCompile > a:hover, .hoverCompile > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverMissing {background-color:#F0F0F0; border: 1px solid #ABABAB; width: 15px; color: black; text-align: center; }
+            .hoverMissing:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #ABABAB; }
+            .hoverMissing:hover td { background: transparent; }
+            .hoverMissing > a:link, .hoverMissing > a:visited, .hoverMissing > a:hover, .hoverMissing > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverTimeout {background-color:#B9F; border: 1px solid #9070CE; width: 15px; color: black; text-align: center; }
+            .hoverTimeout:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #9070CE; }
+            .hoverTimeout:hover td { background: transparent; }
+            .hoverTimeout > a:link, .hoverTimeout > a:visited, .hoverTimeout > a:hover, .hoverTimeout > a:active { color: black; font-size: 0.9em; }
+            table tbody td.hoverImage {background-color:#D0E0F0; border: 1px solid #a6b3c0; width: 15px; color: black; text-align: center; }
+            .hoverImage:hover { background-color: #FAFAF0; !important; color: #000; border: 1px solid #a6b3c0; }
+            .hoverImage:hover td { background: transparent; }
+            .hoverImage > a:link, .hoverImage > a:visited, .hoverImage > a:hover, .hoverImage > a:active { color: black; font-size: 0.9em; }
+            .tableCommon { border-collapse: collapse; }
+            .tableOK > tbody > tr > td { border: 1px solid #63B563; padding: 7px;}
+            .tableError > tbody > tr > td { border: 1px solid #CB9800; padding: 7px;}
+            .tableRuntime > tbody > tr > td { border: 1px solid #D8D87E; padding: 7px;}
+            .tableCompiler > tbody > tr > td { border: 1px solid #710B0B; padding: 7px;}
+            .tableMissing > tbody > tr > td { border: 1px solid #ABABAB; padding: 7px;}
+            .tableTimeout > tbody > tr > td { border: 1px solid #9070CE; padding: 7px;}
+            .tableImage > tbody > tr > td { border: 1px solid #a6b3c0; padding: 7px;}
+            .tableSummary { table-layout: fixed; }
+            .texttt { font-family: DejaVu Sans Mono, monospace; font-size: 0.8em; }
+            table.diff > tbody > tr > td { border: none; font-family: DejaVu Sans Mono, monospace}
+            .diff_add { color: green; font-family: DejaVu Sans Mono, monospace; }
+            .diff_sub { color: blue; font-family: DejaVu Sans Mono, monospace; }
+            .diff_chg { color: red; font-family: DejaVu Sans Mono, monospace; }
+            a { color: blue; text-decoration: none; height: 100%; width: 100%; vertical-align: middle; }
+            a:link { color: blue; text-decoration: none; }
+            a:link { color: blue; text-decoration: none; }
+            a:hover { color: blue; text-decoration: underline; }
+            body, td { font: normal normal 100%/1.0 DejaVu Sans, sans-serif; }
+            h1 { font-weight: bold; font-size: 150%; }
+            h2 { font-weight: normal; font-size: 125%; border-top: 1px solid black; border-bottom: 1px solid black; background: #DEF; padding: 5px; margin-top: 36px; margin-bottom: 36px}
+            .container{ margin: 0px auto; width: 70%; min-width: 700px; margin-top: 1.8cm; margin-bottom: 1.8cm; }
+            .rwordb{ color: blue; font-weight: bold; }
+            .rwordv{ color:#8000ff; font-weight: bold; }
+            .vcomment{ color: green; }
+            .bcomment{ color: green; }
+            .niz{ color:#a31515; }
+            .stevilo{ color:#ff8000; }
+            tab { padding-left: 4em; }
+            #grad1 {
+                background: -webkit-linear-gradient(left, #E0E0E0 , white);
+                background: -o-linear-gradient(right, #E0E0E0, white);
+                background: -moz-linear-gradient(right, #E0E0E0, white);
+                background: linear-gradient(to right, #E0E0E0 , white);
+            }
+            #grad2 {
+                background: -webkit-linear-gradient(left, #FFBF00 , white);
+                background: -o-linear-gradient(right, #FFBF00, white);
+                background: -moz-linear-gradient(right, #FFBF00, white);
+                background: linear-gradient(to right, #FFBF00 , white);
+            }
+            .capSlika { display:block; height: 25px; margin:0 auto; font-size: 1.0em; text-align: left; }
+            .dborder { padding: 0px; border: 1px solid #CACACA; }
+            .capText { display: block; margin:0 auto; font-size: 0.9em; text-align: left; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+        <a name="top"></a>
+        <h1 id="grad2" style="padding: 10px; border: 0px solid black; color: #000000;">Rezultati preverjanja <span style="color: #700000;">DN02_63230112.java</span> (47/50)</h1>
+        <div style="height: 20px"></div>
+        <a name="summary"></a>
+        <h2>Povzetek rezultatov</h2>
+        <table id="nasredini" class="tableBase tableResults">
+            <tbody>
+                <tr>
+                <td class="hoverOk"><a href="#testcase1">1</a></td>
+                <td class="hoverOk"><a href="#testcase2">2</a></td>
+                <td class="hoverOk"><a href="#testcase3">3</a></td>
+                <td class="hoverOk"><a href="#testcase4">4</a></td>
+                <td class="hoverOk"><a href="#testcase5">5</a></td>
+                <td class="hoverOk"><a href="#testcase6">6</a></td>
+                <td class="hoverOk"><a href="#testcase7">7</a></td>
+                <td class="hoverOk"><a href="#testcase8">8</a></td>
+                <td class="hoverOk"><a href="#testcase9">9</a></td>
+                <td class="hoverOk"><a href="#testcase10">10</a></td>
+                </tr>
+                <tr></tr>
+            </tbody>
+        </table>
+        <table id="nasredini" class="tableBase tableResults">
+            <tbody>
+                <tr>
+                <td class="hoverOk"><a href="#testcase11">11</a></td>
+                <td class="hoverOk"><a href="#testcase12">12</a></td>
+                <td class="hoverOk"><a href="#testcase13">13</a></td>
+                <td class="hoverOk"><a href="#testcase14">14</a></td>
+                <td class="hoverOk"><a href="#testcase15">15</a></td>
+                <td class="hoverOk"><a href="#testcase16">16</a></td>
+                <td class="hoverOk"><a href="#testcase17">17</a></td>
+                <td class="hoverOk"><a href="#testcase18">18</a></td>
+                <td class="hoverOk"><a href="#testcase19">19</a></td>
+                <td class="hoverOk"><a href="#testcase20">20</a></td>
+                </tr>
+                <tr></tr>
+            </tbody>
+        </table>
+        <table id="nasredini" class="tableBase tableResults">
+            <tbody>
+                <tr>
+                <td class="hoverOk"><a href="#testcase21">21</a></td>
+                <td class="hoverOk"><a href="#testcase22">22</a></td>
+                <td class="hoverOk"><a href="#testcase23">23</a></td>
+                <td class="hoverOk"><a href="#testcase24">24</a></td>
+                <td class="hoverOk"><a href="#testcase25">25</a></td>
+                <td class="hoverOk"><a href="#testcase26">26</a></td>
+                <td class="hoverOk"><a href="#testcase27">27</a></td>
+                <td class="hoverTimeout"><a href="#testcase28">28</a></td>
+                <td class="hoverOk"><a href="#testcase29">29</a></td>
+                <td class="hoverOk"><a href="#testcase30">30</a></td>
+                </tr>
+                <tr></tr>
+            </tbody>
+        </table>
+        <table id="nasredini" class="tableBase tableResults">
+            <tbody>
+                <tr>
+                <td class="hoverOk"><a href="#testcase31">31</a></td>
+                <td class="hoverOk"><a href="#testcase32">32</a></td>
+                <td class="hoverOk"><a href="#testcase33">33</a></td>
+                <td class="hoverOk"><a href="#testcase34">34</a></td>
+                <td class="hoverTimeout"><a href="#testcase35">35</a></td>
+                <td class="hoverOk"><a href="#testcase36">36</a></td>
+                <td class="hoverOk"><a href="#testcase37">37</a></td>
+                <td class="hoverOk"><a href="#testcase38">38</a></td>
+                <td class="hoverOk"><a href="#testcase39">39</a></td>
+                <td class="hoverOk"><a href="#testcase40">40</a></td>
+                </tr>
+                <tr></tr>
+            </tbody>
+        </table>
+        <table id="nasredini" class="tableBase tableResults">
+            <tbody>
+                <tr>
+                <td class="hoverOk"><a href="#testcase41">41</a></td>
+                <td class="hoverTimeout"><a href="#testcase42">42</a></td>
+                <td class="hoverOk"><a href="#testcase43">43</a></td>
+                <td class="hoverOk"><a href="#testcase44">44</a></td>
+                <td class="hoverOk"><a href="#testcase45">45</a></td>
+                <td class="hoverOk"><a href="#testcase46">46</a></td>
+                <td class="hoverOk"><a href="#testcase47">47</a></td>
+                <td class="hoverOk"><a href="#testcase48">48</a></td>
+                <td class="hoverOk"><a href="#testcase49">49</a></td>
+                <td class="hoverOk"><a href="#testcase50">50</a></td>
+                </tr>
+                <tr></tr>
+            </tbody>
+        </table>
+        <div style="height: 20px"></div>
+        <h2>Rezultati</h2>
+        <a name="testcase1"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 1</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+1<br/>
+22<br/>
+0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            0<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase2"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 2</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+3<br/>
+69<br/>
+0&nbsp;1&nbsp;0&nbsp;2&nbsp;0&nbsp;1&nbsp;2&nbsp;1&nbsp;2&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;2&nbsp;1&nbsp;1&nbsp;0&nbsp;2&nbsp;0&nbsp;2&nbsp;2&nbsp;2&nbsp;2&nbsp;0&nbsp;2&nbsp;2&nbsp;1&nbsp;0&nbsp;2&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;1&nbsp;1&nbsp;2&nbsp;2&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;2&nbsp;0&nbsp;1&nbsp;1&nbsp;2&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;1&nbsp;0&nbsp;2&nbsp;2&nbsp;2&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;2&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;2&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            64<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase3"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 3</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+2<br/>
+82<br/>
+1&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;1&nbsp;0&nbsp;1&nbsp;0&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            33<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase4"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 4</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+60<br/>
+47<br/>
+29&nbsp;21&nbsp;52&nbsp;17&nbsp;25&nbsp;8&nbsp;4&nbsp;41&nbsp;24&nbsp;14&nbsp;49&nbsp;0&nbsp;5&nbsp;31&nbsp;42&nbsp;9&nbsp;47&nbsp;59&nbsp;21&nbsp;46&nbsp;18&nbsp;26&nbsp;14&nbsp;20&nbsp;29&nbsp;24&nbsp;57&nbsp;31&nbsp;58&nbsp;8&nbsp;25&nbsp;5&nbsp;3&nbsp;41&nbsp;14&nbsp;1&nbsp;22&nbsp;19&nbsp;30&nbsp;32&nbsp;53&nbsp;8&nbsp;56&nbsp;59&nbsp;2&nbsp;17&nbsp;47<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            1016<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase5"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 5</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+51<br/>
+72<br/>
+37&nbsp;35&nbsp;31&nbsp;30&nbsp;14&nbsp;2&nbsp;46&nbsp;12&nbsp;31&nbsp;45&nbsp;2&nbsp;43&nbsp;12&nbsp;31&nbsp;4&nbsp;8&nbsp;20&nbsp;7&nbsp;27&nbsp;0&nbsp;40&nbsp;45&nbsp;39&nbsp;20&nbsp;0&nbsp;22&nbsp;19&nbsp;9&nbsp;9&nbsp;46&nbsp;19&nbsp;12&nbsp;34&nbsp;10&nbsp;44&nbsp;2&nbsp;39&nbsp;29&nbsp;9&nbsp;45&nbsp;35&nbsp;39&nbsp;48&nbsp;27&nbsp;12&nbsp;14&nbsp;34&nbsp;14&nbsp;30&nbsp;22&nbsp;19&nbsp;36&nbsp;26&nbsp;14&nbsp;2&nbsp;38&nbsp;22&nbsp;31&nbsp;6&nbsp;22&nbsp;16&nbsp;23&nbsp;6&nbsp;32&nbsp;13&nbsp;29&nbsp;38&nbsp;0&nbsp;32&nbsp;14&nbsp;7&nbsp;41<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            1314<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase6"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 6</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+422<br/>
+55<br/>
+119&nbsp;364&nbsp;161&nbsp;283&nbsp;345&nbsp;394&nbsp;43&nbsp;323&nbsp;46&nbsp;97&nbsp;24&nbsp;413&nbsp;254&nbsp;63&nbsp;42&nbsp;276&nbsp;361&nbsp;74&nbsp;163&nbsp;384&nbsp;266&nbsp;407&nbsp;66&nbsp;212&nbsp;275&nbsp;400&nbsp;220&nbsp;241&nbsp;80&nbsp;156&nbsp;278&nbsp;53&nbsp;305&nbsp;122&nbsp;37&nbsp;187&nbsp;236&nbsp;304&nbsp;69&nbsp;198&nbsp;411&nbsp;390&nbsp;348&nbsp;0&nbsp;137&nbsp;218&nbsp;346&nbsp;8&nbsp;67&nbsp;384&nbsp;30&nbsp;75&nbsp;295&nbsp;180&nbsp;148<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            8709<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase7"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 7</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+5882<br/>
+70<br/>
+2594&nbsp;2529&nbsp;3038&nbsp;3478&nbsp;5003&nbsp;1452&nbsp;2211&nbsp;2981&nbsp;2802&nbsp;3874&nbsp;3221&nbsp;1895&nbsp;1864&nbsp;1124&nbsp;2072&nbsp;5869&nbsp;3247&nbsp;3734&nbsp;4693&nbsp;5018&nbsp;1193&nbsp;4350&nbsp;4858&nbsp;1937&nbsp;5336&nbsp;3546&nbsp;3559&nbsp;5408&nbsp;3596&nbsp;5806&nbsp;2421&nbsp;4506&nbsp;1273&nbsp;4713&nbsp;5335&nbsp;909&nbsp;4896&nbsp;2499&nbsp;5125&nbsp;3405&nbsp;721&nbsp;39&nbsp;1551&nbsp;1334&nbsp;613&nbsp;1395&nbsp;2634&nbsp;4859&nbsp;1690&nbsp;567&nbsp;890&nbsp;4367&nbsp;3841&nbsp;2488&nbsp;4020&nbsp;2827&nbsp;744&nbsp;142&nbsp;3176&nbsp;5005&nbsp;114&nbsp;2737&nbsp;2904&nbsp;3057&nbsp;3437&nbsp;2079&nbsp;3232&nbsp;4035&nbsp;898&nbsp;1961<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            116197<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase8"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 8</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+3<br/>
+9<br/>
+0&nbsp;1&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;2&nbsp;1&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            6<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase9"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 9</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+9<br/>
+64<br/>
+3&nbsp;6&nbsp;0&nbsp;0&nbsp;3&nbsp;2&nbsp;3&nbsp;3&nbsp;7&nbsp;1&nbsp;8&nbsp;8&nbsp;6&nbsp;6&nbsp;0&nbsp;8&nbsp;3&nbsp;1&nbsp;2&nbsp;8&nbsp;7&nbsp;4&nbsp;8&nbsp;8&nbsp;8&nbsp;3&nbsp;8&nbsp;6&nbsp;0&nbsp;2&nbsp;1&nbsp;7&nbsp;3&nbsp;0&nbsp;0&nbsp;5&nbsp;4&nbsp;1&nbsp;2&nbsp;7&nbsp;1&nbsp;3&nbsp;8&nbsp;5&nbsp;1&nbsp;6&nbsp;5&nbsp;5&nbsp;8&nbsp;2&nbsp;6&nbsp;7&nbsp;7&nbsp;1&nbsp;6&nbsp;1&nbsp;7&nbsp;1&nbsp;5&nbsp;1&nbsp;6&nbsp;0&nbsp;1&nbsp;2<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            207<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase10"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 10</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+6<br/>
+61<br/>
+2&nbsp;4&nbsp;0&nbsp;2&nbsp;2&nbsp;3&nbsp;0&nbsp;4&nbsp;0&nbsp;2&nbsp;0&nbsp;3&nbsp;0&nbsp;1&nbsp;1&nbsp;1&nbsp;2&nbsp;4&nbsp;5&nbsp;1&nbsp;2&nbsp;5&nbsp;0&nbsp;5&nbsp;3&nbsp;4&nbsp;5&nbsp;4&nbsp;0&nbsp;5&nbsp;2&nbsp;4&nbsp;4&nbsp;0&nbsp;3&nbsp;0&nbsp;2&nbsp;1&nbsp;2&nbsp;1&nbsp;2&nbsp;4&nbsp;1&nbsp;5&nbsp;1&nbsp;2&nbsp;4&nbsp;4&nbsp;4&nbsp;5&nbsp;0&nbsp;0&nbsp;1&nbsp;1&nbsp;0&nbsp;3&nbsp;3&nbsp;3&nbsp;4&nbsp;5&nbsp;4<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            118<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase11"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 11</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+26<br/>
+5<br/>
+20&nbsp;1&nbsp;17&nbsp;18&nbsp;25<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            43<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase12"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 12</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+90<br/>
+23<br/>
+67&nbsp;38&nbsp;22&nbsp;50&nbsp;8&nbsp;28&nbsp;82&nbsp;44&nbsp;1&nbsp;12&nbsp;60&nbsp;51&nbsp;6&nbsp;25&nbsp;88&nbsp;63&nbsp;89&nbsp;44&nbsp;32&nbsp;19&nbsp;89&nbsp;58&nbsp;46<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            699<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase13"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 13</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            1<br/>
+121<br/>
+75<br/>
+109&nbsp;61&nbsp;85&nbsp;118&nbsp;5&nbsp;113&nbsp;106&nbsp;104&nbsp;71&nbsp;24&nbsp;4&nbsp;63&nbsp;2&nbsp;56&nbsp;43&nbsp;19&nbsp;44&nbsp;64&nbsp;84&nbsp;54&nbsp;12&nbsp;58&nbsp;55&nbsp;88&nbsp;106&nbsp;57&nbsp;44&nbsp;72&nbsp;21&nbsp;46&nbsp;10&nbsp;92&nbsp;55&nbsp;118&nbsp;94&nbsp;40&nbsp;66&nbsp;58&nbsp;12&nbsp;4&nbsp;26&nbsp;73&nbsp;75&nbsp;113&nbsp;89&nbsp;30&nbsp;40&nbsp;65&nbsp;70&nbsp;110&nbsp;38&nbsp;89&nbsp;100&nbsp;35&nbsp;78&nbsp;103&nbsp;91&nbsp;97&nbsp;18&nbsp;21&nbsp;85&nbsp;47&nbsp;97&nbsp;72&nbsp;37&nbsp;52&nbsp;73&nbsp;101&nbsp;58&nbsp;51&nbsp;54&nbsp;82&nbsp;1&nbsp;117&nbsp;107<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            2636<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase14"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 14</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+6631<br/>
+5<br/>
+38970854&nbsp;1399830&nbsp;7759615&nbsp;42733621&nbsp;16436380<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            20160<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase15"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 15</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+9<br/>
+84<br/>
+51&nbsp;53&nbsp;0&nbsp;72&nbsp;72&nbsp;44&nbsp;8&nbsp;67&nbsp;80&nbsp;27&nbsp;28&nbsp;76&nbsp;52&nbsp;77&nbsp;59&nbsp;74&nbsp;55&nbsp;57&nbsp;77&nbsp;28&nbsp;4&nbsp;2&nbsp;30&nbsp;54&nbsp;16&nbsp;25&nbsp;59&nbsp;68&nbsp;30&nbsp;15&nbsp;66&nbsp;36&nbsp;39&nbsp;60&nbsp;25&nbsp;55&nbsp;34&nbsp;5&nbsp;68&nbsp;76&nbsp;24&nbsp;44&nbsp;56&nbsp;26&nbsp;39&nbsp;18&nbsp;38&nbsp;21&nbsp;35&nbsp;3&nbsp;7&nbsp;5&nbsp;17&nbsp;67&nbsp;62&nbsp;12&nbsp;32&nbsp;65&nbsp;42&nbsp;41&nbsp;32&nbsp;31&nbsp;5&nbsp;65&nbsp;12&nbsp;67&nbsp;5&nbsp;20&nbsp;60&nbsp;23&nbsp;24&nbsp;66&nbsp;64&nbsp;22&nbsp;6&nbsp;64&nbsp;45&nbsp;51&nbsp;63&nbsp;39&nbsp;27&nbsp;20&nbsp;66&nbsp;58<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            469<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase16"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 16</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+5<br/>
+82<br/>
+2&nbsp;6&nbsp;18&nbsp;18&nbsp;1&nbsp;1&nbsp;9&nbsp;3&nbsp;14&nbsp;16&nbsp;7&nbsp;21&nbsp;3&nbsp;6&nbsp;7&nbsp;17&nbsp;19&nbsp;23&nbsp;14&nbsp;9&nbsp;22&nbsp;11&nbsp;6&nbsp;21&nbsp;6&nbsp;24&nbsp;24&nbsp;24&nbsp;3&nbsp;4&nbsp;7&nbsp;21&nbsp;6&nbsp;16&nbsp;7&nbsp;12&nbsp;0&nbsp;15&nbsp;11&nbsp;5&nbsp;16&nbsp;8&nbsp;4&nbsp;3&nbsp;5&nbsp;21&nbsp;24&nbsp;0&nbsp;14&nbsp;0&nbsp;13&nbsp;22&nbsp;24&nbsp;24&nbsp;0&nbsp;18&nbsp;24&nbsp;9&nbsp;15&nbsp;8&nbsp;20&nbsp;1&nbsp;14&nbsp;5&nbsp;1&nbsp;22&nbsp;23&nbsp;12&nbsp;19&nbsp;13&nbsp;11&nbsp;23&nbsp;17&nbsp;4&nbsp;20&nbsp;0&nbsp;15&nbsp;15&nbsp;16&nbsp;16&nbsp;8&nbsp;8<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            256<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase17"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 17</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+7<br/>
+11<br/>
+23&nbsp;48&nbsp;19&nbsp;47&nbsp;31&nbsp;25&nbsp;12&nbsp;44&nbsp;30&nbsp;5&nbsp;27<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            46<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase18"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 18</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+74<br/>
+75<br/>
+2133&nbsp;5171&nbsp;781&nbsp;4744&nbsp;1278&nbsp;2208&nbsp;3267&nbsp;5242&nbsp;4387&nbsp;2075&nbsp;1681&nbsp;698&nbsp;5249&nbsp;2392&nbsp;17&nbsp;3429&nbsp;882&nbsp;2096&nbsp;2714&nbsp;1955&nbsp;2027&nbsp;5372&nbsp;2431&nbsp;691&nbsp;1936&nbsp;4579&nbsp;7&nbsp;2727&nbsp;1604&nbsp;4820&nbsp;1753&nbsp;2176&nbsp;644&nbsp;4788&nbsp;3628&nbsp;2444&nbsp;1044&nbsp;668&nbsp;4184&nbsp;3569&nbsp;2770&nbsp;3327&nbsp;328&nbsp;4596&nbsp;278&nbsp;1510&nbsp;264&nbsp;2816&nbsp;197&nbsp;3306&nbsp;5103&nbsp;310&nbsp;1211&nbsp;1861&nbsp;4271&nbsp;1060&nbsp;188&nbsp;3770&nbsp;289&nbsp;5475&nbsp;4095&nbsp;3135&nbsp;5437&nbsp;1365&nbsp;3898&nbsp;1280&nbsp;2563&nbsp;1909&nbsp;1214&nbsp;3990&nbsp;1643&nbsp;484&nbsp;1218&nbsp;3191&nbsp;2707<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            4108<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase19"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 19</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+44<br/>
+92<br/>
+942&nbsp;207&nbsp;1211&nbsp;1683&nbsp;328&nbsp;1081&nbsp;621&nbsp;1325&nbsp;996&nbsp;1751&nbsp;1067&nbsp;1143&nbsp;140&nbsp;1889&nbsp;1364&nbsp;994&nbsp;137&nbsp;1563&nbsp;1679&nbsp;467&nbsp;1686&nbsp;1524&nbsp;821&nbsp;1679&nbsp;387&nbsp;1287&nbsp;1471&nbsp;1810&nbsp;1152&nbsp;202&nbsp;1396&nbsp;1404&nbsp;1214&nbsp;44&nbsp;1693&nbsp;614&nbsp;914&nbsp;885&nbsp;1813&nbsp;1611&nbsp;276&nbsp;701&nbsp;412&nbsp;1567&nbsp;98&nbsp;427&nbsp;1062&nbsp;697&nbsp;41&nbsp;1666&nbsp;355&nbsp;1696&nbsp;94&nbsp;1920&nbsp;1803&nbsp;426&nbsp;653&nbsp;473&nbsp;1643&nbsp;669&nbsp;588&nbsp;1043&nbsp;1210&nbsp;262&nbsp;1757&nbsp;488&nbsp;1568&nbsp;1187&nbsp;1050&nbsp;1132&nbsp;1037&nbsp;1008&nbsp;1880&nbsp;422&nbsp;361&nbsp;264&nbsp;429&nbsp;98&nbsp;366&nbsp;280&nbsp;751&nbsp;513&nbsp;1878&nbsp;992&nbsp;1864&nbsp;1176&nbsp;475&nbsp;1613&nbsp;1835&nbsp;546&nbsp;1230&nbsp;865<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            2877<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase20"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 20</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+168<br/>
+55<br/>
+26773&nbsp;18560&nbsp;14487&nbsp;8259&nbsp;8786&nbsp;11805&nbsp;27201&nbsp;3203&nbsp;20160&nbsp;4306&nbsp;8725&nbsp;23122&nbsp;1232&nbsp;12110&nbsp;22747&nbsp;9551&nbsp;11608&nbsp;13720&nbsp;12444&nbsp;1174&nbsp;17113&nbsp;24949&nbsp;1891&nbsp;4246&nbsp;5008&nbsp;10972&nbsp;11739&nbsp;7738&nbsp;27622&nbsp;17675&nbsp;6956&nbsp;19469&nbsp;15908&nbsp;19254&nbsp;14317&nbsp;16801&nbsp;27551&nbsp;17471&nbsp;6942&nbsp;12862&nbsp;14530&nbsp;927&nbsp;22086&nbsp;1790&nbsp;11825&nbsp;8320&nbsp;4510&nbsp;13476&nbsp;14128&nbsp;2746&nbsp;22149&nbsp;15831&nbsp;9035&nbsp;1981&nbsp;7678<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            6043<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase21"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 21</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+1<br/>
+84<br/>
+0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            0<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase22"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 22</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+10<br/>
+48<br/>
+95&nbsp;17&nbsp;9&nbsp;3&nbsp;18&nbsp;23&nbsp;92&nbsp;67&nbsp;95&nbsp;64&nbsp;29&nbsp;39&nbsp;34&nbsp;32&nbsp;90&nbsp;55&nbsp;2&nbsp;55&nbsp;96&nbsp;64&nbsp;78&nbsp;58&nbsp;75&nbsp;35&nbsp;98&nbsp;23&nbsp;78&nbsp;40&nbsp;40&nbsp;94&nbsp;58&nbsp;79&nbsp;51&nbsp;48&nbsp;27&nbsp;53&nbsp;94&nbsp;77&nbsp;56&nbsp;74&nbsp;36&nbsp;19&nbsp;70&nbsp;69&nbsp;26&nbsp;41&nbsp;51&nbsp;76<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            297<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase23"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 23</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+9<br/>
+47<br/>
+58&nbsp;43&nbsp;13&nbsp;57&nbsp;31&nbsp;64&nbsp;14&nbsp;6&nbsp;67&nbsp;67&nbsp;13&nbsp;30&nbsp;24&nbsp;26&nbsp;18&nbsp;8&nbsp;70&nbsp;63&nbsp;74&nbsp;52&nbsp;77&nbsp;49&nbsp;27&nbsp;17&nbsp;23&nbsp;36&nbsp;1&nbsp;39&nbsp;74&nbsp;72&nbsp;67&nbsp;69&nbsp;73&nbsp;42&nbsp;11&nbsp;43&nbsp;64&nbsp;65&nbsp;76&nbsp;8&nbsp;12&nbsp;13&nbsp;73&nbsp;45&nbsp;26&nbsp;20&nbsp;17<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            269<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase24"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 24</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+10<br/>
+13<br/>
+59&nbsp;62&nbsp;34&nbsp;98&nbsp;17&nbsp;33&nbsp;9&nbsp;78&nbsp;27&nbsp;86&nbsp;95&nbsp;56&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            86<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase25"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 25</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            2<br/>
+13<br/>
+90<br/>
+140&nbsp;19&nbsp;26&nbsp;84&nbsp;149&nbsp;19&nbsp;168&nbsp;115&nbsp;62&nbsp;29&nbsp;98&nbsp;57&nbsp;136&nbsp;129&nbsp;132&nbsp;97&nbsp;163&nbsp;159&nbsp;162&nbsp;66&nbsp;29&nbsp;33&nbsp;132&nbsp;48&nbsp;150&nbsp;1&nbsp;27&nbsp;130&nbsp;50&nbsp;47&nbsp;40&nbsp;162&nbsp;102&nbsp;57&nbsp;88&nbsp;65&nbsp;147&nbsp;7&nbsp;18&nbsp;114&nbsp;63&nbsp;105&nbsp;136&nbsp;116&nbsp;66&nbsp;49&nbsp;108&nbsp;128&nbsp;125&nbsp;6&nbsp;63&nbsp;148&nbsp;161&nbsp;57&nbsp;140&nbsp;39&nbsp;161&nbsp;37&nbsp;63&nbsp;57&nbsp;149&nbsp;98&nbsp;86&nbsp;27&nbsp;152&nbsp;109&nbsp;114&nbsp;74&nbsp;106&nbsp;144&nbsp;127&nbsp;13&nbsp;18&nbsp;19&nbsp;36&nbsp;35&nbsp;65&nbsp;99&nbsp;115&nbsp;76&nbsp;127&nbsp;146&nbsp;49&nbsp;32&nbsp;41&nbsp;114&nbsp;77&nbsp;91&nbsp;90&nbsp;113<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            765<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase26"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 26</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+11<br/>
+64<br/>
+16&nbsp;75&nbsp;101&nbsp;59&nbsp;49&nbsp;105&nbsp;49&nbsp;120&nbsp;21&nbsp;69&nbsp;24&nbsp;49&nbsp;5&nbsp;6&nbsp;31&nbsp;7&nbsp;22&nbsp;6&nbsp;103&nbsp;114&nbsp;31&nbsp;57&nbsp;69&nbsp;53&nbsp;13&nbsp;69&nbsp;21&nbsp;35&nbsp;9&nbsp;4&nbsp;113&nbsp;8&nbsp;93&nbsp;109&nbsp;28&nbsp;44&nbsp;7&nbsp;101&nbsp;38&nbsp;116&nbsp;59&nbsp;118&nbsp;107&nbsp;8&nbsp;97&nbsp;67&nbsp;12&nbsp;77&nbsp;18&nbsp;78&nbsp;7&nbsp;2&nbsp;4&nbsp;96&nbsp;115&nbsp;83&nbsp;54&nbsp;77&nbsp;15&nbsp;105&nbsp;77&nbsp;33&nbsp;56&nbsp;52<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            545<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase27"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 27</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+890<br/>
+80<br/>
+740504&nbsp;173306&nbsp;218440&nbsp;689233&nbsp;277979&nbsp;114869&nbsp;138305&nbsp;446043&nbsp;160855&nbsp;516855&nbsp;744589&nbsp;398054&nbsp;631642&nbsp;761197&nbsp;766875&nbsp;503826&nbsp;740892&nbsp;629391&nbsp;426284&nbsp;310775&nbsp;116911&nbsp;181197&nbsp;510362&nbsp;477595&nbsp;386689&nbsp;252484&nbsp;195602&nbsp;89762&nbsp;8823&nbsp;397078&nbsp;201&nbsp;2985&nbsp;35625&nbsp;715596&nbsp;421748&nbsp;713715&nbsp;354560&nbsp;197266&nbsp;436764&nbsp;297315&nbsp;30370&nbsp;116834&nbsp;428466&nbsp;15923&nbsp;202002&nbsp;733683&nbsp;238304&nbsp;605716&nbsp;530260&nbsp;727866&nbsp;295566&nbsp;267486&nbsp;87540&nbsp;775845&nbsp;203952&nbsp;667229&nbsp;392479&nbsp;330802&nbsp;514701&nbsp;691829&nbsp;349535&nbsp;771914&nbsp;583150&nbsp;139248&nbsp;122825&nbsp;131459&nbsp;505869&nbsp;364894&nbsp;703535&nbsp;583389&nbsp;481599&nbsp;596314&nbsp;686665&nbsp;699585&nbsp;516158&nbsp;38179&nbsp;638159&nbsp;64435&nbsp;348714&nbsp;332065<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            46927<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase28"></a>
+        <div style="border: 1px solid #9070CE">
+            <table class="tableTimeout tableCommon" style="width: 100%; border: 3px solid #B9F;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #B9F; color: black;">Testni primer 28</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+5814<br/>
+71<br/>
+17562693&nbsp;23757566&nbsp;29095590&nbsp;27863196&nbsp;20446922&nbsp;9224875&nbsp;19690190&nbsp;31150644&nbsp;29585041&nbsp;17544503&nbsp;31749058&nbsp;3402012&nbsp;24868304&nbsp;2491211&nbsp;25192651&nbsp;31378988&nbsp;10051173&nbsp;21818811&nbsp;13287944&nbsp;13635849&nbsp;28526800&nbsp;7362818&nbsp;14400532&nbsp;1385057&nbsp;18782366&nbsp;1797034&nbsp;30377610&nbsp;2287171&nbsp;24674646&nbsp;6757733&nbsp;4763816&nbsp;25596102&nbsp;24947859&nbsp;32233837&nbsp;16371873&nbsp;16959619&nbsp;14594397&nbsp;4989331&nbsp;19325378&nbsp;6736582&nbsp;14859760&nbsp;29027755&nbsp;21914738&nbsp;14297734&nbsp;8921188&nbsp;31536837&nbsp;25340407&nbsp;25707260&nbsp;21695455&nbsp;18210751&nbsp;23831786&nbsp;5272789&nbsp;23841445&nbsp;11419398&nbsp;11940419&nbsp;14498406&nbsp;25147501&nbsp;32454039&nbsp;736154&nbsp;29490111&nbsp;632047&nbsp;22109105&nbsp;5092700&nbsp;30513017&nbsp;2544939&nbsp;10167428&nbsp;24539165&nbsp;13131494&nbsp;5429497&nbsp;3650338&nbsp;33579065<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            <br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase29"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 29</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+10<br/>
+73<br/>
+25&nbsp;30&nbsp;88&nbsp;32&nbsp;76&nbsp;24&nbsp;4&nbsp;68&nbsp;87&nbsp;69&nbsp;83&nbsp;83&nbsp;22&nbsp;51&nbsp;15&nbsp;9&nbsp;85&nbsp;33&nbsp;28&nbsp;90&nbsp;64&nbsp;87&nbsp;61&nbsp;99&nbsp;49&nbsp;90&nbsp;0&nbsp;51&nbsp;2&nbsp;3&nbsp;60&nbsp;91&nbsp;10&nbsp;88&nbsp;64&nbsp;83&nbsp;99&nbsp;84&nbsp;93&nbsp;38&nbsp;17&nbsp;54&nbsp;98&nbsp;67&nbsp;26&nbsp;12&nbsp;68&nbsp;43&nbsp;51&nbsp;96&nbsp;29&nbsp;65&nbsp;31&nbsp;78&nbsp;79&nbsp;78&nbsp;78&nbsp;23&nbsp;95&nbsp;67&nbsp;72&nbsp;39&nbsp;47&nbsp;57&nbsp;69&nbsp;40&nbsp;42&nbsp;36&nbsp;86&nbsp;26&nbsp;71&nbsp;65&nbsp;49<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            510<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase30"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 30</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+9<br/>
+8<br/>
+71&nbsp;2&nbsp;59&nbsp;55&nbsp;16&nbsp;57&nbsp;35&nbsp;28<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            48<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase31"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 31</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+4<br/>
+7<br/>
+2&nbsp;9&nbsp;10&nbsp;9&nbsp;4&nbsp;11&nbsp;6<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            13<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase32"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 32</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+8<br/>
+58<br/>
+21&nbsp;24&nbsp;0&nbsp;63&nbsp;60&nbsp;4&nbsp;1&nbsp;54&nbsp;15&nbsp;3&nbsp;42&nbsp;14&nbsp;42&nbsp;7&nbsp;10&nbsp;36&nbsp;24&nbsp;16&nbsp;55&nbsp;10&nbsp;15&nbsp;32&nbsp;29&nbsp;10&nbsp;14&nbsp;50&nbsp;45&nbsp;55&nbsp;56&nbsp;3&nbsp;11&nbsp;36&nbsp;9&nbsp;43&nbsp;2&nbsp;33&nbsp;42&nbsp;55&nbsp;3&nbsp;30&nbsp;42&nbsp;15&nbsp;60&nbsp;5&nbsp;51&nbsp;31&nbsp;31&nbsp;34&nbsp;4&nbsp;20&nbsp;16&nbsp;7&nbsp;27&nbsp;16&nbsp;56&nbsp;57&nbsp;28&nbsp;14<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            328<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase33"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 33</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+58<br/>
+49<br/>
+782&nbsp;1861&nbsp;1512&nbsp;1157&nbsp;1466&nbsp;1912&nbsp;1575&nbsp;1739&nbsp;2808&nbsp;2509&nbsp;1708&nbsp;2503&nbsp;1933&nbsp;1703&nbsp;870&nbsp;2556&nbsp;813&nbsp;313&nbsp;1888&nbsp;1731&nbsp;2976&nbsp;15&nbsp;2531&nbsp;1651&nbsp;2982&nbsp;2964&nbsp;3333&nbsp;2847&nbsp;1847&nbsp;445&nbsp;3146&nbsp;64&nbsp;1853&nbsp;807&nbsp;3072&nbsp;2213&nbsp;839&nbsp;2710&nbsp;2168&nbsp;2698&nbsp;3150&nbsp;1530&nbsp;2916&nbsp;497&nbsp;56&nbsp;2846&nbsp;1237&nbsp;2694&nbsp;2347<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            2358<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase34"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 34</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+948<br/>
+78<br/>
+785437&nbsp;633440&nbsp;774456&nbsp;148496&nbsp;426095&nbsp;654500&nbsp;259159&nbsp;415472&nbsp;232663&nbsp;711227&nbsp;468887&nbsp;103657&nbsp;69889&nbsp;188745&nbsp;547315&nbsp;755850&nbsp;486278&nbsp;725889&nbsp;703696&nbsp;314033&nbsp;44870&nbsp;116496&nbsp;595776&nbsp;790139&nbsp;771081&nbsp;234762&nbsp;331984&nbsp;352774&nbsp;735934&nbsp;76982&nbsp;174746&nbsp;741694&nbsp;546353&nbsp;749046&nbsp;11933&nbsp;870881&nbsp;305397&nbsp;392629&nbsp;465678&nbsp;469959&nbsp;844336&nbsp;606320&nbsp;449817&nbsp;108&nbsp;769338&nbsp;467411&nbsp;659364&nbsp;180508&nbsp;49889&nbsp;607730&nbsp;375010&nbsp;839723&nbsp;356585&nbsp;16575&nbsp;498289&nbsp;323635&nbsp;684444&nbsp;820191&nbsp;692535&nbsp;127463&nbsp;712457&nbsp;168972&nbsp;144000&nbsp;85799&nbsp;393971&nbsp;868384&nbsp;827214&nbsp;215232&nbsp;443637&nbsp;851961&nbsp;18051&nbsp;433412&nbsp;234462&nbsp;439180&nbsp;733379&nbsp;28587&nbsp;842518&nbsp;18657<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            57980<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase35"></a>
+        <div style="border: 1px solid #9070CE">
+            <table class="tableTimeout tableCommon" style="width: 100%; border: 3px solid #B9F;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #B9F; color: black;">Testni primer 35</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+6379<br/>
+23<br/>
+30949738&nbsp;24972493&nbsp;26867709&nbsp;40456131&nbsp;25312929&nbsp;32915760&nbsp;27184973&nbsp;32988658&nbsp;27342203&nbsp;33576963&nbsp;23144136&nbsp;27139841&nbsp;30603423&nbsp;35387320&nbsp;30856501&nbsp;29743361&nbsp;19264271&nbsp;18690977&nbsp;39020927&nbsp;31819072&nbsp;9676042&nbsp;39344476&nbsp;9533397<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            <br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase36"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 36</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+1<br/>
+41<br/>
+0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            0<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase37"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 37</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+4<br/>
+89<br/>
+2&nbsp;1&nbsp;9&nbsp;0&nbsp;9&nbsp;6&nbsp;6&nbsp;10&nbsp;13&nbsp;9&nbsp;1&nbsp;5&nbsp;10&nbsp;10&nbsp;1&nbsp;14&nbsp;10&nbsp;4&nbsp;7&nbsp;3&nbsp;0&nbsp;13&nbsp;14&nbsp;15&nbsp;14&nbsp;6&nbsp;11&nbsp;4&nbsp;4&nbsp;6&nbsp;13&nbsp;11&nbsp;2&nbsp;2&nbsp;5&nbsp;15&nbsp;1&nbsp;14&nbsp;14&nbsp;13&nbsp;11&nbsp;1&nbsp;1&nbsp;7&nbsp;12&nbsp;0&nbsp;3&nbsp;1&nbsp;1&nbsp;4&nbsp;6&nbsp;2&nbsp;10&nbsp;15&nbsp;9&nbsp;11&nbsp;10&nbsp;1&nbsp;0&nbsp;1&nbsp;8&nbsp;11&nbsp;8&nbsp;4&nbsp;9&nbsp;15&nbsp;6&nbsp;15&nbsp;2&nbsp;0&nbsp;3&nbsp;13&nbsp;15&nbsp;12&nbsp;1&nbsp;11&nbsp;4&nbsp;14&nbsp;9&nbsp;3&nbsp;7&nbsp;4&nbsp;14&nbsp;12&nbsp;10&nbsp;2&nbsp;5&nbsp;5&nbsp;12<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            236<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase38"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 38</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            3<br/>
+5<br/>
+80<br/>
+13&nbsp;16&nbsp;17&nbsp;1&nbsp;24&nbsp;20&nbsp;11&nbsp;16&nbsp;17&nbsp;1&nbsp;0&nbsp;21&nbsp;2&nbsp;3&nbsp;8&nbsp;18&nbsp;16&nbsp;17&nbsp;17&nbsp;3&nbsp;0&nbsp;3&nbsp;5&nbsp;2&nbsp;17&nbsp;17&nbsp;15&nbsp;3&nbsp;1&nbsp;1&nbsp;24&nbsp;1&nbsp;22&nbsp;17&nbsp;21&nbsp;20&nbsp;12&nbsp;7&nbsp;0&nbsp;10&nbsp;24&nbsp;14&nbsp;14&nbsp;17&nbsp;7&nbsp;24&nbsp;10&nbsp;17&nbsp;12&nbsp;19&nbsp;4&nbsp;21&nbsp;2&nbsp;6&nbsp;20&nbsp;14&nbsp;2&nbsp;10&nbsp;6&nbsp;15&nbsp;17&nbsp;17&nbsp;13&nbsp;17&nbsp;12&nbsp;8&nbsp;10&nbsp;3&nbsp;22&nbsp;24&nbsp;10&nbsp;13&nbsp;14&nbsp;7&nbsp;18&nbsp;1&nbsp;1&nbsp;8&nbsp;19&nbsp;14<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            287<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase39"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 39</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+95<br/>
+76<br/>
+344&nbsp;6562&nbsp;7334&nbsp;1226&nbsp;2194&nbsp;6699&nbsp;1093&nbsp;2292&nbsp;5111&nbsp;7262&nbsp;5548&nbsp;7707&nbsp;1418&nbsp;4024&nbsp;1505&nbsp;54&nbsp;1175&nbsp;6396&nbsp;6605&nbsp;2341&nbsp;4426&nbsp;3453&nbsp;4782&nbsp;4356&nbsp;155&nbsp;3886&nbsp;7946&nbsp;4184&nbsp;4537&nbsp;2445&nbsp;1602&nbsp;3458&nbsp;3225&nbsp;7985&nbsp;2677&nbsp;7531&nbsp;7822&nbsp;182&nbsp;6067&nbsp;4946&nbsp;7609&nbsp;6250&nbsp;2039&nbsp;5306&nbsp;8319&nbsp;3860&nbsp;381&nbsp;5562&nbsp;920&nbsp;1589&nbsp;7942&nbsp;1983&nbsp;8686&nbsp;8587&nbsp;2691&nbsp;4069&nbsp;7503&nbsp;5398&nbsp;8275&nbsp;1444&nbsp;8669&nbsp;112&nbsp;2117&nbsp;4972&nbsp;296&nbsp;5754&nbsp;1041&nbsp;4005&nbsp;6112&nbsp;3637&nbsp;7985&nbsp;3362&nbsp;5677&nbsp;5172&nbsp;3980&nbsp;6307<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            5001<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase40"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 40</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+11<br/>
+24<br/>
+101&nbsp;100&nbsp;88&nbsp;44&nbsp;94&nbsp;85&nbsp;46&nbsp;89&nbsp;99&nbsp;14&nbsp;20&nbsp;70&nbsp;68&nbsp;10&nbsp;48&nbsp;110&nbsp;65&nbsp;55&nbsp;99&nbsp;52&nbsp;51&nbsp;84&nbsp;109&nbsp;22<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            169<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase41"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 41</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+321<br/>
+58<br/>
+93514&nbsp;8609&nbsp;22896&nbsp;88732&nbsp;15875&nbsp;83444&nbsp;55483&nbsp;13053&nbsp;26776&nbsp;30102&nbsp;67641&nbsp;102453&nbsp;95983&nbsp;31949&nbsp;71937&nbsp;47584&nbsp;21866&nbsp;70332&nbsp;62242&nbsp;7296&nbsp;9229&nbsp;11572&nbsp;88961&nbsp;78122&nbsp;70454&nbsp;101682&nbsp;54614&nbsp;88399&nbsp;54278&nbsp;48584&nbsp;29697&nbsp;28913&nbsp;53361&nbsp;68879&nbsp;32960&nbsp;102347&nbsp;34208&nbsp;81151&nbsp;9650&nbsp;31726&nbsp;57505&nbsp;12436&nbsp;65683&nbsp;98534&nbsp;1533&nbsp;53370&nbsp;23144&nbsp;60842&nbsp;48555&nbsp;13935&nbsp;57861&nbsp;77384&nbsp;102368&nbsp;76788&nbsp;56622&nbsp;66941&nbsp;11688&nbsp;4273<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            12269<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase42"></a>
+        <div style="border: 1px solid #9070CE">
+            <table class="tableTimeout tableCommon" style="width: 100%; border: 3px solid #B9F;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #B9F; color: black;">Testni primer 42</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+8291<br/>
+99<br/>
+28509032&nbsp;4886280&nbsp;68171208&nbsp;34975397&nbsp;14912375&nbsp;30132698&nbsp;46679798&nbsp;1283423&nbsp;41629951&nbsp;68581017&nbsp;54269487&nbsp;33965286&nbsp;8046908&nbsp;51482577&nbsp;22512563&nbsp;51360380&nbsp;57509660&nbsp;20492950&nbsp;40132684&nbsp;3348576&nbsp;54893918&nbsp;45396003&nbsp;12894220&nbsp;8843466&nbsp;549547&nbsp;52488767&nbsp;54646794&nbsp;56579939&nbsp;47350032&nbsp;60706337&nbsp;46079480&nbsp;36589663&nbsp;16979074&nbsp;56323803&nbsp;64406499&nbsp;4842133&nbsp;43370610&nbsp;555107&nbsp;5504010&nbsp;28712310&nbsp;15001253&nbsp;17424994&nbsp;17183558&nbsp;33494582&nbsp;34746246&nbsp;9521395&nbsp;63975438&nbsp;20113227&nbsp;53584376&nbsp;46417685&nbsp;34698550&nbsp;68165702&nbsp;32630885&nbsp;31358978&nbsp;58915998&nbsp;53292805&nbsp;41909869&nbsp;13774880&nbsp;9464652&nbsp;15649888&nbsp;41787283&nbsp;4049357&nbsp;39494858&nbsp;60088238&nbsp;55198539&nbsp;11009985&nbsp;36321111&nbsp;18495220&nbsp;22084243&nbsp;22262352&nbsp;12167878&nbsp;42329071&nbsp;9747781&nbsp;3932265&nbsp;5089944&nbsp;66323672&nbsp;18423144&nbsp;19986154&nbsp;19380939&nbsp;61927910&nbsp;46058285&nbsp;14119147&nbsp;25010844&nbsp;47896696&nbsp;1492179&nbsp;67704730&nbsp;47444206&nbsp;66823883&nbsp;39381515&nbsp;19037867&nbsp;57480279&nbsp;14703154&nbsp;8144376&nbsp;64113605&nbsp;13438371&nbsp;40538685&nbsp;53258042&nbsp;62487553&nbsp;10281270<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            <br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase43"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 43</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+5<br/>
+100<br/>
+17&nbsp;21&nbsp;6&nbsp;19&nbsp;6&nbsp;7&nbsp;2&nbsp;8&nbsp;10&nbsp;16&nbsp;0&nbsp;18&nbsp;3&nbsp;12&nbsp;20&nbsp;11&nbsp;0&nbsp;19&nbsp;20&nbsp;20&nbsp;7&nbsp;8&nbsp;1&nbsp;4&nbsp;12&nbsp;10&nbsp;24&nbsp;20&nbsp;12&nbsp;24&nbsp;15&nbsp;12&nbsp;24&nbsp;13&nbsp;4&nbsp;21&nbsp;12&nbsp;9&nbsp;14&nbsp;18&nbsp;2&nbsp;12&nbsp;4&nbsp;18&nbsp;17&nbsp;1&nbsp;14&nbsp;2&nbsp;8&nbsp;8&nbsp;22&nbsp;3&nbsp;15&nbsp;17&nbsp;12&nbsp;19&nbsp;5&nbsp;8&nbsp;24&nbsp;10&nbsp;21&nbsp;7&nbsp;22&nbsp;9&nbsp;0&nbsp;22&nbsp;20&nbsp;14&nbsp;24&nbsp;10&nbsp;19&nbsp;6&nbsp;18&nbsp;13&nbsp;14&nbsp;12&nbsp;13&nbsp;13&nbsp;18&nbsp;22&nbsp;10&nbsp;20&nbsp;0&nbsp;15&nbsp;15&nbsp;1&nbsp;24&nbsp;15&nbsp;10&nbsp;10&nbsp;7&nbsp;23&nbsp;12&nbsp;24&nbsp;10&nbsp;15&nbsp;21&nbsp;19&nbsp;16&nbsp;11<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            296<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase44"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 44</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+3<br/>
+96<br/>
+8&nbsp;0&nbsp;2&nbsp;8&nbsp;8&nbsp;0&nbsp;5&nbsp;2&nbsp;4&nbsp;5&nbsp;3&nbsp;3&nbsp;6&nbsp;8&nbsp;3&nbsp;3&nbsp;5&nbsp;4&nbsp;5&nbsp;0&nbsp;3&nbsp;4&nbsp;7&nbsp;5&nbsp;1&nbsp;2&nbsp;8&nbsp;4&nbsp;0&nbsp;3&nbsp;1&nbsp;6&nbsp;4&nbsp;2&nbsp;0&nbsp;6&nbsp;5&nbsp;2&nbsp;0&nbsp;1&nbsp;5&nbsp;7&nbsp;0&nbsp;8&nbsp;6&nbsp;3&nbsp;7&nbsp;0&nbsp;1&nbsp;3&nbsp;2&nbsp;5&nbsp;7&nbsp;8&nbsp;4&nbsp;3&nbsp;2&nbsp;5&nbsp;8&nbsp;0&nbsp;2&nbsp;1&nbsp;8&nbsp;6&nbsp;1&nbsp;7&nbsp;8&nbsp;7&nbsp;3&nbsp;4&nbsp;3&nbsp;8&nbsp;1&nbsp;3&nbsp;6&nbsp;7&nbsp;2&nbsp;1&nbsp;7&nbsp;1&nbsp;8&nbsp;7&nbsp;6&nbsp;2&nbsp;2&nbsp;6&nbsp;5&nbsp;3&nbsp;6&nbsp;8&nbsp;0&nbsp;3&nbsp;2&nbsp;1&nbsp;6&nbsp;8<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            170<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase45"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 45</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+7<br/>
+88<br/>
+43&nbsp;27&nbsp;45&nbsp;29&nbsp;40&nbsp;32&nbsp;8&nbsp;41&nbsp;47&nbsp;28&nbsp;34&nbsp;8&nbsp;43&nbsp;41&nbsp;30&nbsp;43&nbsp;21&nbsp;42&nbsp;10&nbsp;4&nbsp;28&nbsp;8&nbsp;35&nbsp;30&nbsp;45&nbsp;22&nbsp;34&nbsp;34&nbsp;26&nbsp;19&nbsp;2&nbsp;33&nbsp;45&nbsp;48&nbsp;38&nbsp;1&nbsp;3&nbsp;16&nbsp;46&nbsp;34&nbsp;35&nbsp;4&nbsp;26&nbsp;29&nbsp;9&nbsp;9&nbsp;26&nbsp;9&nbsp;33&nbsp;18&nbsp;34&nbsp;6&nbsp;10&nbsp;40&nbsp;39&nbsp;22&nbsp;6&nbsp;23&nbsp;44&nbsp;18&nbsp;37&nbsp;34&nbsp;37&nbsp;26&nbsp;26&nbsp;22&nbsp;37&nbsp;42&nbsp;43&nbsp;44&nbsp;15&nbsp;25&nbsp;26&nbsp;22&nbsp;0&nbsp;10&nbsp;23&nbsp;43&nbsp;16&nbsp;40&nbsp;39&nbsp;42&nbsp;21&nbsp;20&nbsp;17&nbsp;18&nbsp;3&nbsp;14<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            369<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase46"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 46</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+1<br/>
+10<br/>
+0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0&nbsp;0<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            0<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase47"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 47</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+27<br/>
+24<br/>
+448&nbsp;339&nbsp;593&nbsp;119&nbsp;459&nbsp;709&nbsp;224&nbsp;528&nbsp;454&nbsp;209&nbsp;82&nbsp;385&nbsp;262&nbsp;53&nbsp;197&nbsp;593&nbsp;129&nbsp;379&nbsp;616&nbsp;358&nbsp;699&nbsp;65&nbsp;295&nbsp;202<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            412<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase48"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 48</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+167<br/>
+14<br/>
+9991&nbsp;4962&nbsp;441&nbsp;25429&nbsp;18509&nbsp;15612&nbsp;12503&nbsp;19864&nbsp;22115&nbsp;25955&nbsp;14353&nbsp;3609&nbsp;24015&nbsp;20655<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            1906<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase49"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 49</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+657<br/>
+53<br/>
+15599&nbsp;175430&nbsp;295142&nbsp;3582&nbsp;9505&nbsp;178053&nbsp;230451&nbsp;194954&nbsp;183127&nbsp;56257&nbsp;346568&nbsp;188096&nbsp;240193&nbsp;150682&nbsp;265970&nbsp;275552&nbsp;350229&nbsp;382379&nbsp;383684&nbsp;344921&nbsp;396152&nbsp;291228&nbsp;142281&nbsp;54939&nbsp;251981&nbsp;212551&nbsp;396283&nbsp;180264&nbsp;26987&nbsp;92294&nbsp;408355&nbsp;354954&nbsp;268299&nbsp;118221&nbsp;425422&nbsp;304136&nbsp;263575&nbsp;69662&nbsp;275998&nbsp;48200&nbsp;171073&nbsp;197437&nbsp;109450&nbsp;397314&nbsp;419216&nbsp;310828&nbsp;184188&nbsp;404006&nbsp;178359&nbsp;229440&nbsp;299453&nbsp;404725&nbsp;215328<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            23217<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+        <a name="testcase50"></a>
+        <div style="border: 1px solid #63B563">
+            <table class="tableOK tableCommon" style="width: 100%; border: 3px solid #9F9;">
+                <tbody>
+                    <tr>
+                        <td colspan="2" style="background-color: #9F9; color: black;">Testni primer 50</td>
+                    </tr>
+                    <tr>
+                        <td style="width: 200px;">Vhod</td>
+                        <td class="texttt">
+                            4<br/>
+9<br/>
+23<br/>
+76&nbsp;29&nbsp;29&nbsp;12&nbsp;3&nbsp;11&nbsp;76&nbsp;32&nbsp;27&nbsp;25&nbsp;80&nbsp;65&nbsp;42&nbsp;73&nbsp;39&nbsp;9&nbsp;4&nbsp;40&nbsp;19&nbsp;28&nbsp;7&nbsp;46&nbsp;47<br/>
+<br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Izhod programa</td>
+                        <td class="texttt">
+                            101<br/><br/>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="height: 15px"></div>
+<div style="font-size: 0.8em;">[ <a href="#top">&uparrow;</a> | <a href="#bottom">&downarrow;</a> | 
+<a href="#summary">Povzetek</a> | 
+<a href="#testcase1">Rezultati</a> ]</div><div style="height: 30px"></div>
+
+        <div style="height: 30px"></div>
+
+        <table id="grad1" class="tableLegend tableSummary"
+          <tbody>
+            <tr>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #9F9; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">ok</td>
+                </tr>
+              </table>
+              </td>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #FFBF00; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">napaka</td>
+                </tr>
+              </table>
+              </td>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #FF9; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">napaka med izvajanjem</td>
+                </tr>
+              </table>
+              </td>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #C00000; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">se ne prevede</td>
+                </tr>
+              </table>
+              </td>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #B9F; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">timeout (1000 ms)</td>
+                </tr>
+              </table>
+              </td>
+              <td style="color: black;">
+              <table class="tableLegend">
+                <tr>
+	              <td style="background-color: #D0E0F0; color: black; width: 10px; text-align: center; border: 1px solid black; padding: 2px;"></td>
+	              <td style="font-size: 0.7em; padding: 3px;">rezultat izrisa</td>
+                </tr>
+              </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <a name="bottom"></a>
+        </div>
+    </body>
+    <!-- java class tester version "1.5.10" -->
+    <!-- 25.11.2023 18:46.11 -->
+    <!-- Tims-MacBook-Pro, [OSSupportsIPv6 v6]: True [SocketException]: Could not resolve host 'Tims-MacBook-Pro' -->
+</html>

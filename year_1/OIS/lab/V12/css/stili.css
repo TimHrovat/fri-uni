@@ -1,0 +1,30 @@
+body {
+    font-family: Verdana;
+}
+
+h3 {
+    font-weight: bold;
+    color: darkolivegreen;
+}
+
+hr {
+    border-top: 3px solid black;
+}
+
+.text-muted {
+    color: darkolivegreen !important;
+    font-style: italic;
+}
+
+#izbrana-denarnica {
+    font-size: 12px;
+}
+
+#prijava-forma, #tabela-donacij{
+    display: none;
+}
+
+p {
+    font-weight: bold;
+    color: darkred;
+}
