@@ -3,7 +3,7 @@
   "description": "Povezovanje na podatkovno bazo",
   "author": "Dejan Lavbič <Dejan@lavbic.net>",
   "dependencies": {
-    "sqlite3": "*",
+    "sqlite3": "*"
     "express": "*"
   },
   "private": true
