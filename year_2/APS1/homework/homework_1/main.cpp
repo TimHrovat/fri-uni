@@ -1,23 +1,46 @@
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
 int main() {
-  int dolzina, n;
+  long long street_length, n;
 
-  // lokacija, moč
-  vector<pair<int, int>> svetilke;
+  // left, right bounds
+  vector<pair<long long, long long>> intervals;
 
-  cin >> dolzina >> n;
+  cin >> street_length >> n;
 
   for (int i = 0; i < n; i++) {
-    int lokacija;
-    int moc;
+    long long location;
+    long long strength;
 
-    cin >> lokacija >> moc;
+    cin >> location >> strength;
 
-    svetilke.push_back({lokacija, moc});
+    long long left = max(0LL, location - strength);
+    long long right = min(street_length, location + strength);
+
+    intervals.push_back({left, right});
   }
+
+  sort(intervals.begin(), intervals.end());
+
+  long long unlit_street_length = 0;
+  long long last_end = 0;
+
+  for (auto &interval : intervals) {
+    if (last_end < interval.first) {
+      unlit_street_length += interval.first - last_end;
+
+      last_end = interval.second;
+    } else {
+      last_end = max(interval.second, last_end);
+    }
+  }
+
+  unlit_street_length += street_length - last_end;
+
+  cout << unlit_street_length << '\n';
 
   return 0;
 }
