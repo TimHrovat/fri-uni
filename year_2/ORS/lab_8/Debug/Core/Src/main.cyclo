@@ -1,0 +1,10 @@
+../Core/Src/main.c:61:6:start_timer	1
+../Core/Src/main.c:74:6:stop_timer	1
+../Core/Src/main.c:80:10:get_time	1
+../Core/Src/main.c:86:6:init_leds	1
+../Core/Src/main.c:116:6:toggle_leds	1
+../Core/Src/main.c:128:5:main	2
+../Core/Src/main.c:204:6:DMA1_Stream0_IRQHandler	2
+../Core/Src/main.c:216:6:SystemClock_Config	4
+../Core/Src/main.c:268:6:MPU_Config	1
+../Core/Src/main.c:299:6:Error_Handler	1
