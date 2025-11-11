@@ -4,27 +4,7 @@
 
 ### Manual convolution calculation
 
-f = \[0,1,1,1,0,0.7,0.5,0.2,0,0,1,0\]
-k = \[0.5,1,0.3\]
-k_flip = \[0.3,1,0.5\]
-
-i ... 0-11
-
-i=0: k_flip[0]*f[0] + k_flip[1]*f[-1] + k_flip[2]*f[-2] = 0.3*0 + 1*0 + 0.5*0 = 0
-i=1: k_flip[0]*f[1] + k_flip[1]*f[0] + k_flip[2]*f[-1] = 0.3*1 + 1*0 + 0.5*0 = 0.3
-i=2: k_flip[0]*f[2] + k_flip[1]*f[1] + k_flip[2]*f[0] = 0.3*1 + 1*1 + 0.5*0 = 1.3
-i=3: k_flip[0]*f[3] + k_flip[1]*f[2] + k_flip[2]*f[1] = 0.3*1 + 1*1 + 0.5*1 = 1.8
-i=4: k_flip[0]*f[4] + k_flip[1]*f[3] + k_flip[2]*f[2] = 0.3*0 + 1*1 + 0.5*1 = 1.5
-i=5: k_flip[0]*f[5] + k_flip[1]*f[4] + k_flip[2]*f[3] = 0.3*0.7 + 1*0 + 0.5*1 = 0.21 + 0 + 0.5 = 0.71
-i=6: k_flip[0]*f[6] + k_flip[1]*f[5] + k_flip[2]*f[4] = 0.3*0.5 + 1*0.7 + 0.5*0 = 0.15 + 0.7 + 0 = 0.85
-i=7: k_flip[0]*f[7] + k_flip[1]*f[6] + k_flip[2]*f[5] = 0.3*0.2 + 1*0.5 + 0.5*0.7 = 0.06 + 0.5 + 0.35 = 0.91
-i=8: k_flip[0]*f[8] + k_flip[1]*f[7] + k_flip[2]*f[6] = 0.3*0 + 1*0.2 + 0.5*0.5 = 0 + 0.2 + 0.25 = 0.45
-i=9: k_flip[0]*f[9] + k_flip[1]*f[8] + k_flip[2]*f[7] = 0.3*0 + 1*0 + 0.5*0.2 = 0 + 0 + 0.1 = 0.1
-i=10: k_flip[0]*f[10] + k_flip[1]*f[9] + k_flip[2]*f[8] = 0.3*1 + 1*0 + 0.5*0 = 0.3 + 0 + 0 = 0.3
-i=11: k_flip[0]*f[11] + k_flip[1]*f[10] + k_flip[2]*f[9] = 0.3*0 + 1*1 + 0.5*0 = 0 + 1 + 0 = 1
-
-[0, 0.3, 1.3, 1.8, 1.5, 0.71, 0.85, 0.91, 0.45, 0.1, 0.3, 1]
-[0.3, 1.3, 1.8, 1.5, 0.71, 0.85, 0.91, 0.45, 0.1, 0.3]
+ipad
 
 ### Can you recognize the shape of the kernel? What is the sum of the elements in the kernel? How does the kernel affect the signal?
 
@@ -32,13 +12,9 @@ i=11: k_flip[0]*f[11] + k_flip[1]*f[10] + k_flip[2]*f[9] = 0.3*0 + 1*1 + 0.5*0 =
 - 1
 - zgladi ostre tranzicije v signalu (smoothing)
 
-### The figure below shows two kernels (a) and (b) as well as signal (c).
+### The figure below shows two kernels (a) and (b) as well as signal (c). Sketch (do not focus on exact proportions of your drawing, but rather on the understanding of what you are doing) the resulting convolved signal of the given input signal and each kernel.
 
-Sketch (do not focus on exact proportions of your drawing, but rather on the understanding
-of what you are doing) the resulting convolved signal of the given input
-signal and each kernel.
-
-TODO
+ipad
 
 ### Convolution associativity effect
 

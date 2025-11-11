@@ -141,6 +141,7 @@ def gauss(sigma):
 
 def exercise_1d():
     sigma_values = [0.5, 1, 2, 3, 4]
+    colors = ['blue', 'red', 'green', 'orange', 'purple']
 
     plt.figure(figsize=(12, 8))
 
@@ -150,11 +151,14 @@ def exercise_1d():
         half_size = len(kernel) // 2
         x_coords = np.arange(-half_size, half_size + 1)
 
-        plt.subplot(len(sigma_values), 1, i + 1)
-        plt.plot(x_coords, kernel, 'b-', linewidth=2, marker='o', markersize=4)
-        plt.title(f'Gaussian Kernel (σ = {sigma})')
-        plt.grid(True, alpha=0.3)
+        plt.plot(x_coords, kernel, color=colors[i], linewidth=2,
+                marker='o', markersize=4, label=f'σ = {sigma}')
 
+    plt.title('Gaussian Kernels with Different Sigma Values')
+    plt.xlabel('Position')
+    plt.ylabel('Kernel Value')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
     plt.tight_layout()
     plt.show()
 
