@@ -188,6 +188,154 @@ def exercise1d():
     plt.show()
 
 
+def findedges(image, sigma, theta):
+    magnitude, angles = gradient_magnitude(image, sigma)
+    edges = np.where(magnitude >= theta, magnitude, 0)
+
+    return edges
+
+
+def nonmaxima_suppression(magnitude, angles):
+    h, w = magnitude.shape
+    suppressed = np.zeros_like(magnitude)
+    angle_deg = np.rad2deg(angles) % 180  # rad -> deg & normalize
+
+    for i in range(1, h - 1):
+        for j in range(1, w - 1):
+            if magnitude[i, j] == 0:
+                continue
+
+            angle = angle_deg[i, j]
+
+            if (0 <= angle < 22.5) or (157.5 <= angle < 180):
+                neighbors = [magnitude[i, j-1], magnitude[i, j+1]]
+            elif 22.5 <= angle < 67.5:
+                neighbors = [magnitude[i-1, j-1], magnitude[i+1, j+1]]
+            elif 67.5 <= angle < 112.5:
+                neighbors = [magnitude[i-1, j], magnitude[i+1, j]]
+            else:
+                neighbors = [magnitude[i-1, j+1], magnitude[i+1, j-1]]
+
+            if magnitude[i, j] >= max(neighbors):
+                suppressed[i, j] = magnitude[i, j]
+
+    return suppressed
+
+
+def exercise2a():
+    '''
+    Edge detection with different threshold values
+    '''
+    museum = cv2.imread('./images/museum.jpg', cv2.IMREAD_GRAYSCALE)
+    museum = museum.astype(np.float32) / 255.0
+
+    sigma = 0.5
+    theta_values = [0.1, 0.2, 0.3]
+
+    plt.figure(figsize=(10, 10))
+
+    plt.subplot(2, 2, 1)
+    plt.imshow(museum, cmap='gray')
+    plt.title('Original Image')
+    plt.axis('off')
+
+    for i, theta in enumerate(theta_values):
+        edges = findedges(museum, sigma, theta)
+
+        plt.subplot(2, 2, i + 2)
+        plt.imshow(edges, cmap='gray')
+        plt.title(f'Edges (thr={theta})')
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def exercise2b():
+    '''
+    Non-maxima suppression comparison
+    '''
+    museum = cv2.imread('./images/museum.jpg', cv2.IMREAD_GRAYSCALE)
+    museum = museum.astype(np.float32) / 255.0
+
+    sigma = 1.0
+    theta_values = [0.1, 0.2, 0.3]
+
+    magnitude, angles = gradient_magnitude(museum, sigma)
+
+    plt.figure(figsize=(15, 10))
+
+    for i, theta in enumerate(theta_values):
+        edges = np.where(magnitude >= theta, magnitude, 0)
+
+        edges_nma = nonmaxima_suppression(magnitude, angles)
+        edges_nma = np.where(edges_nma >= theta, edges_nma, 0)
+
+        plt.subplot(2, 3, i + 1)
+        plt.imshow(edges, cmap='gray')
+        plt.title(f'Thresholded (thr={theta})')
+        plt.axis('off')
+
+        plt.subplot(2, 3, i + 4)
+        plt.imshow(edges_nma, cmap='gray')
+        plt.title(f'Nonmax. supp. (thr={theta})')
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def hysteresis_thresholding(edges, t_low, t_high):
+    strong_edges = edges >= t_high
+    result = strong_edges.astype(np.uint8)
+    all_edges = (edges >= t_low).astype(np.uint8)
+
+    num_labels, labels = cv2.connectedComponents(all_edges)
+
+    for label in range(1, num_labels):
+        component_mask = (labels == label)
+
+        # keep components that have strong edges
+        if np.any(strong_edges & component_mask):
+            result = result | component_mask
+
+    return result.astype(np.float32)
+
+
+def exercise2c():
+    '''
+    Canny edge
+    '''
+    museum = cv2.imread('./images/museum.jpg', cv2.IMREAD_GRAYSCALE)
+    museum = museum.astype(np.float32) / 255.0
+
+    sigma = 1.0
+    threshold = 0.16
+    t_high = 0.16
+    t_low = 0.04
+
+    magnitude, angles = gradient_magnitude(museum, sigma)
+    nms_result = nonmaxima_suppression(magnitude, angles)
+
+    steps = [
+        [museum, 'Original'],
+        [np.where(magnitude >= threshold, magnitude, 0), 'Thresholded'],
+        [np.where(nms_result >= threshold, nms_result, 0), 'NMS'],
+        [hysteresis_thresholding(nms_result, t_low, t_high), 'Hysteresis']
+    ]
+
+    plt.figure(figsize=(12, 12))
+
+    for i, (image, label) in enumerate(steps):
+        plt.subplot(2, 2, i + 1)
+        plt.imshow(image, cmap='gray')
+        plt.title(label)
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     # Exercise 1
     # Exercise 1a: solved on my ipad
@@ -196,6 +344,9 @@ def main():
     exercise1d()
 
     # Exercise 2
+    exercise2a()
+    exercise2b()
+    exercise2c()
 
     # Exercise 3
 
