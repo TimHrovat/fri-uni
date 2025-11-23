@@ -55,3 +55,8 @@ hellinger: 0.3207
 **Vpliv števila binov**: Manj binov = manj diskriminativno, vendar bolj robustno. Več binov = bolj diskriminativno, vendar občutljivejše na šum.
 
 **Čas izvajanja**: Da, čas se poveča kubično s številom binov (O(n_bins³)).
+
+
+k_f
+
+i=0 
