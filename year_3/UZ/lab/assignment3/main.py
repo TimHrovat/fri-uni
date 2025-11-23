@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import os
 import glob
 import matplotlib.colors as mcolors
+from a3_utils import draw_line
 
 
 def gauss(sigma):
@@ -336,6 +337,204 @@ def exercise2c():
     plt.show()
 
 
+def get_hough_params(h, w, bins_theta, bins_rho):
+    theta_range = np.linspace(-np.pi/2, np.pi/2, bins_theta)
+
+    diagonal = np.sqrt(h**2 + w**2)
+    rho_range = np.linspace(-diagonal, diagonal, bins_rho)
+
+    return theta_range, rho_range
+
+
+def hough_single_point(point, h, w, bins_theta, bins_rho):
+    x, y = point
+    theta_range, rho_range = get_hough_params(h, w, bins_theta, bins_rho)
+    accumulator = np.zeros((bins_rho, bins_theta))
+
+    for i, theta in enumerate(theta_range):
+        rho = x * np.cos(theta) + y * np.sin(theta)
+
+        rho_idx = np.argmin(np.abs(rho_range - rho))
+        accumulator[rho_idx, i] += 1
+
+    return accumulator, theta_range, rho_range
+
+
+def hough_find_lines(binary_image, bins_theta, bins_rho):
+    h, w = binary_image.shape
+    theta_range, rho_range = get_hough_params(h, w, bins_theta, bins_rho)
+
+    accumulator = np.zeros((bins_rho, bins_theta))
+
+    edge_pixels = np.where(binary_image > 0)
+
+    for row, col in zip(edge_pixels[0], edge_pixels[1]):
+        # Convert image array indices to (x,y) coordinates
+        x, y = col, row
+        for i, theta in enumerate(theta_range):
+            rho = x * np.cos(theta) + y * np.sin(theta)
+
+            rho_idx = np.argmin(np.abs(rho_range - rho))
+            accumulator[rho_idx, i] += 1
+
+    return accumulator, theta_range, rho_range
+
+
+def exercise3a():
+    """
+    Single point Hough transform
+    """
+    point = (50, 90)
+    h, w = 100, 100
+    bins_theta = 180
+    bins_rho = 200
+
+    accumulator, theta_range, rho_range = hough_single_point(
+        point, h, w, bins_theta, bins_rho)
+
+    plt.figure(figsize=(12, 5))
+
+    img = np.zeros((h, w))
+    img[point[1], point[0]] = 1
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(img, cmap='gray', extent=[0, w, h, 0])
+
+    for i in range(0, len(theta_range), 1):
+        theta = theta_range[i]
+        rho = point[0] * np.cos(theta) + point[1] * np.sin(theta)
+        draw_line(rho, theta, h, w, clr='g', linewidth=0.2)
+
+    plt.xlim(0, w)
+    plt.ylim(h, 0)
+    plt.xlabel('x')
+    plt.ylabel('y')
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(accumulator, cmap='hot', aspect='auto', origin='upper',
+               extent=[theta_range[0], theta_range[-1], rho_range[-1], rho_range[0]])
+    plt.xlabel('θ (radians)')
+    plt.ylabel('ρ (pixels)')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def exercise3b():
+    """
+    Synthetic image Hough transform
+    """
+    bins_theta = 180
+    bins_rho = 200
+
+    synthetic = np.zeros((100, 100))
+    synthetic[10, 10] = 1
+    synthetic[10, 20] = 1
+
+    oneline = cv2.imread('./images/oneline.png', cv2.IMREAD_GRAYSCALE)
+    rectangle = cv2.imread('./images/rectangle.png', cv2.IMREAD_GRAYSCALE)
+
+    oneline_edges = np.where(oneline > 128, 1, 0)
+    rectangle_edges = np.where(rectangle > 128, 1, 0)
+
+    images_data = [
+        [synthetic, 'synthetic'],
+        [oneline_edges, 'oneline.png'],
+        [rectangle_edges, 'rectangle.png']
+    ]
+
+    plt.figure(figsize=(15, 5))
+
+    for i, (image, title) in enumerate(images_data):
+        accumulator, theta_range, rho_range = hough_find_lines(
+            image, bins_theta, bins_rho)
+
+        plt.subplot(1, 3, i + 1)
+        plt.imshow(accumulator, cmap='viridis', aspect='auto', origin='upper',
+                   extent=[theta_range[0], theta_range[-1], rho_range[-1], rho_range[0]])
+        plt.xlabel('θ (radians)')
+        plt.ylabel('ρ (pixels)')
+        plt.title(title)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def nonmaxima_suppression_box(accumulator, k):
+    h, w = accumulator.shape
+    suppressed = np.copy(accumulator)
+
+    nonzero_indices = np.nonzero(accumulator)
+
+    for i, j in zip(nonzero_indices[0], nonzero_indices[1]):
+        i_min = max(0, i - k//2)
+        i_max = min(h, i + k//2 + 1)
+        j_min = max(0, j - k//2)
+        j_max = min(w, j + k//2 + 1)
+
+        neighborhood = accumulator[i_min:i_max, j_min:j_max]
+
+        max_val = np.max(neighborhood)
+        if accumulator[i, j] < max_val:
+            suppressed[i, j] = 0
+        elif accumulator[i, j] == max_val:
+            max_positions = np.where(neighborhood == max_val)
+
+            global_i = max_positions[0] + i_min
+            global_j = max_positions[1] + j_min
+
+            keep_i = global_i[0]
+            keep_j = global_j[0]
+
+            if i != keep_i or j != keep_j:
+                suppressed[i, j] = 0
+
+    return suppressed
+
+
+def exercise3c():
+    """
+    Non-maxima suppression
+    """
+    bins_theta = 180
+    bins_rho = 200
+    k = 5
+
+    rectangle = cv2.imread('./images/rectangle.png', cv2.IMREAD_GRAYSCALE)
+    rectangle_edges = np.where(rectangle > 128, 1, 0)
+
+    accumulator, theta_range, rho_range = hough_find_lines(
+        rectangle_edges, bins_theta, bins_rho)
+
+    suppressed_accumulator = nonmaxima_suppression_box(accumulator, k)
+
+    plt.figure(figsize=(18, 6))
+
+    plt.subplot(1, 3, 1)
+    plt.imshow(rectangle_edges, cmap='gray')
+    plt.title('Edge Image (Rectangle)')
+    plt.axis('off')
+
+    plt.subplot(1, 3, 2)
+    plt.imshow(accumulator, cmap='viridis', aspect='auto', origin='upper',
+               extent=[theta_range[0], theta_range[-1], rho_range[-1], rho_range[0]])
+    plt.xlabel('θ (radians)')
+    plt.ylabel('ρ (pixels)')
+    plt.title('Original Accumulator')
+    plt.colorbar()
+
+    plt.subplot(1, 3, 3)
+    plt.imshow(suppressed_accumulator, cmap='viridis', aspect='auto', origin='upper',
+               extent=[theta_range[0], theta_range[-1], rho_range[-1], rho_range[0]])
+    plt.xlabel('θ (radians)')
+    plt.ylabel('ρ (pixels)')
+    plt.title(f'After Non-maxima Suppression (k={k})')
+    plt.colorbar()
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     # Exercise 1
     # Exercise 1a: solved on my ipad
@@ -349,6 +548,9 @@ def main():
     exercise2c()
 
     # Exercise 3
+    exercise3a()
+    exercise3b()
+    exercise3c()
 
 
 if __name__ == "__main__":
