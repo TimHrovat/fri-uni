@@ -369,7 +369,6 @@ def hough_find_lines(binary_image, bins_theta, bins_rho):
     edge_pixels = np.where(binary_image > 0)
 
     for row, col in zip(edge_pixels[0], edge_pixels[1]):
-        # Convert image array indices to (x,y) coordinates
         x, y = col, row
         for i, theta in enumerate(theta_range):
             rho = x * np.cos(theta) + y * np.sin(theta)
@@ -535,18 +534,32 @@ def exercise3c():
     plt.show()
 
 
-def extract_lines_from_accumulator(accumulator, theta_range, rho_range, threshold=None):
+def extract_lines_from_accumulator(accumulator, theta_range, rho_range, threshold=None, top_n=None):
     rho_list = []
     theta_list = []
 
-    max_val = np.max(accumulator)
-    threshold_val = max_val * threshold
+    if top_n is not None:
+        flat_acc = accumulator.flatten()
+        sorted_indices = np.argsort(flat_acc)[::-1]
 
-    for i in range(accumulator.shape[0]):
-        for j in range(accumulator.shape[1]):
-            if accumulator[i, j] >= threshold_val:
+        count = 0
+        for idx in sorted_indices:
+            if count >= top_n:
+                break
+            if flat_acc[idx] > 0:
+                i, j = np.unravel_index(idx, accumulator.shape)
                 rho_list.append(rho_range[i])
                 theta_list.append(theta_range[j])
+                count += 1
+    else:
+        max_val = np.max(accumulator)
+        threshold_val = max_val * threshold
+
+        for i in range(accumulator.shape[0]):
+            for j in range(accumulator.shape[1]):
+                if accumulator[i, j] >= threshold_val:
+                    rho_list.append(rho_range[i])
+                    theta_list.append(theta_range[j])
 
     return rho_list, theta_list
 
@@ -592,23 +605,66 @@ def exercise3d():
     plt.show()
 
 
+def exercise3e():
+    """
+    Line detection on brick and pier
+    """
+    bricks = cv2.imread('./images/bricks.jpg', cv2.IMREAD_GRAYSCALE)
+    pier = cv2.imread('./images/pier.jpg', cv2.IMREAD_GRAYSCALE)
+
+    images_data = [
+        [bricks, 'bricks.jpg'],
+        [pier, 'pier.jpg']
+    ]
+
+    plt.figure(figsize=(12, 8))
+
+    for i, (image, title) in enumerate(images_data):
+        edges = cv2.Canny(image, 100, 200)
+        edges = np.where(edges > 0, 1, 0)
+
+        accumulator, theta_range, rho_range = hough_find_lines(edges, 360, 400)
+        suppressed_acc = nonmaxima_suppression_box(accumulator, k=3)
+
+        rho_list, theta_list = extract_lines_from_accumulator(
+            suppressed_acc, theta_range, rho_range, threshold=None, top_n=10)
+
+        plt.subplot(2, 2, i + 1)
+        plt.imshow(accumulator, cmap='viridis', aspect='auto', origin='upper',
+                   extent=[theta_range[0], theta_range[-1], rho_range[-1], rho_range[0]])
+        plt.title(title)
+        plt.xlabel('θ (radians)')
+        plt.ylabel('ρ (pixels)')
+
+        plt.subplot(2, 2, i + 3)
+        plt.imshow(image, cmap='gray')
+        plt.title(title)
+        for rho, theta in zip(rho_list, theta_list):
+            draw_line(rho, theta, image.shape[0], image.shape[1], clr='r')
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     # Exercise 1
     # Exercise 1a: solved on my ipad
-    # exercise1b()
-    # exercise1c()
-    # exercise1d()
-    #
-    # # Exercise 2
-    # exercise2a()
-    # exercise2b()
-    # exercise2c()
-    #
-    # # Exercise 3
-    # exercise3a()
-    # exercise3b()
-    # exercise3c()
+    exercise1b()
+    exercise1c()
+    exercise1d()
+
+    # Exercise 2
+    exercise2a()
+    exercise2b()
+    exercise2c()
+
+    # Exercise 3
+    exercise3a()
+    exercise3b()
+    exercise3c()
     exercise3d()
+    exercise3e()
 
 
 if __name__ == "__main__":
