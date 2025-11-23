@@ -535,22 +535,210 @@ def exercise3c():
     plt.show()
 
 
+def extract_lines_from_accumulator(accumulator, theta_range, rho_range, threshold=None, top_n=None):
+    """
+    Extract parameter pairs (rho, theta) from accumulator above threshold or top N lines.
+    Similar to MATLAB hough_draw_lines function (lines 20-27).
+    """
+    rho_list = []
+    theta_list = []
+
+    if top_n is not None:
+        # Select top N strongest lines (similar to hough_draw_lines_top)
+        flat_acc = accumulator.flatten()
+        sorted_indices = np.argsort(flat_acc)[::-1]  # Sort in descending order
+
+        # Take only top_n non-zero values
+        count = 0
+        for idx in sorted_indices:
+            if count >= top_n:
+                break
+            if flat_acc[idx] > 0:  # Only consider non-zero accumulator values
+                i, j = np.unravel_index(idx, accumulator.shape)
+                rho_list.append(rho_range[i])
+                theta_list.append(theta_range[j])
+                count += 1
+    else:
+        # Use threshold approach
+        max_val = np.max(accumulator)
+        threshold_val = max_val * threshold
+
+        # Find all accumulator cells above threshold
+        for i in range(accumulator.shape[0]):  # rho dimension
+            for j in range(accumulator.shape[1]):  # theta dimension
+                if accumulator[i, j] >= threshold_val:
+                    rho_list.append(rho_range[i])
+                    theta_list.append(theta_range[j])
+
+    return rho_list, theta_list
+
+
+def findedges_modified(image, sigma, theta):
+    """
+    Edge detection with non-maxima suppression, similar to MATLAB findedges_modified.
+    """
+    # Add padding to handle border effects
+    pad_size = 20
+    padded_image = np.pad(image, pad_size, mode='symmetric')
+
+    # Apply gradient magnitude and non-maxima suppression
+    magnitude, angles = gradient_magnitude(padded_image, sigma)
+    suppressed = nonmaxima_suppression(magnitude, angles)
+
+    # Apply threshold
+    edges = np.where(suppressed >= theta, 1, 0)
+
+    # Remove padding
+    edges = edges[pad_size:-pad_size, pad_size:-pad_size]
+
+    return edges
+
+
+def exercise3d():
+    """
+    Exercise 3D: Search parameter space and extract parameter pairs (rho, theta)
+    whose corresponding accumulator cell value is greater than a specified threshold.
+    Draw the lines using draw_line() function.
+    """
+    plt.figure(figsize=(15, 5))
+
+    # 1. Synthetic image (from exercise3b)
+    synthetic = np.zeros((100, 100))
+    synthetic[10, 10] = 1
+    synthetic[10, 20] = 1
+
+    # Apply Hough transform
+    bins_theta = synthetic.shape[1]  # Use image dimensions as in MATLAB
+    bins_rho = synthetic.shape[0]
+    accumulator, theta_range, rho_range = hough_find_lines(synthetic, bins_theta, bins_rho)
+
+    # Apply non-maxima suppression
+    suppressed_acc = nonmaxima_suppression_box(accumulator, k=5)
+
+    # Extract lines above threshold and draw
+    rho_list, theta_list = extract_lines_from_accumulator(suppressed_acc, theta_range, rho_range, 0.5)
+
+    plt.subplot(1, 3, 1)
+    plt.imshow(synthetic, cmap='gray')
+    plt.title('Synthetic Image')
+
+    # Draw detected lines
+    for rho, theta in zip(rho_list, theta_list):
+        draw_line(rho, theta, synthetic.shape[0], synthetic.shape[1], clr='r', linewidth=1.0)
+
+    plt.axis('off')
+
+    # 2. Oneline image
+    oneline = cv2.imread('./images/oneline.png', cv2.IMREAD_GRAYSCALE)
+    oneline = oneline.astype(np.float32) / 255.0
+
+    # Simple edge detection using gradient for black-to-white transitions
+    # Calculate gradients to find edges
+    grad_x = np.abs(np.diff(oneline, axis=1))  # Horizontal edges
+    grad_y = np.abs(np.diff(oneline, axis=0))  # Vertical edges
+
+    # Create edge image
+    line_edges = np.zeros_like(oneline)
+    line_edges[:, :-1] += grad_x > 0.3  # Vertical edges (black to white transition)
+    line_edges[:-1, :] += grad_y > 0.3  # Horizontal edges
+    line_edges = np.where(line_edges > 0, 1, 0)
+
+    print(f"Oneline edges: max={np.max(line_edges)}, non-zero count={np.count_nonzero(line_edges)}")
+
+    # Hough transform
+    bins_rho = oneline.shape[0]
+    bins_theta = oneline.shape[1]
+    line_accumulator, theta_range, rho_range = hough_find_lines(line_edges, bins_theta, bins_rho)
+
+    # Debug accumulator values
+    print(f"Oneline: Original accumulator max: {np.max(line_accumulator)}, non-zero count: {np.count_nonzero(line_accumulator)}")
+
+    # Non-maxima suppression
+    line_suppressed = nonmaxima_suppression_box(line_accumulator, k=5)
+    print(f"Oneline: After NMS max: {np.max(line_suppressed)}, non-zero count: {np.count_nonzero(line_suppressed)}")
+
+    # Extract and draw lines (use original accumulator if NMS fails)
+    if np.max(line_suppressed) > 0:
+        rho_list, theta_list = extract_lines_from_accumulator(line_suppressed, theta_range, rho_range, threshold=0.8)
+    else:
+        rho_list, theta_list = extract_lines_from_accumulator(line_accumulator, theta_range, rho_range, threshold=0.8)
+    print(f"Oneline: Found {len(rho_list)} lines")
+
+    plt.subplot(1, 3, 2)
+    plt.imshow(oneline, cmap='gray')
+    plt.title('Oneline Image')
+
+    for rho, theta in zip(rho_list, theta_list):
+        draw_line(rho, theta, oneline.shape[0], oneline.shape[1], clr='r', linewidth=1.0)
+
+    plt.axis('off')
+
+    # 3. Rectangle image
+    rectangle = cv2.imread('./images/rectangle.png', cv2.IMREAD_GRAYSCALE)
+    rectangle = rectangle.astype(np.float32) / 255.0
+
+    # Simple edge detection using gradient for rectangle edges
+    # Calculate gradients to find edges
+    grad_x = np.abs(np.diff(rectangle, axis=1))  # Horizontal edges
+    grad_y = np.abs(np.diff(rectangle, axis=0))  # Vertical edges
+
+    # Create edge image
+    rect_edges = np.zeros_like(rectangle)
+    rect_edges[:, :-1] += grad_x > 0.3  # Vertical edges (rectangle sides)
+    rect_edges[:-1, :] += grad_y > 0.3  # Horizontal edges (rectangle top/bottom)
+    rect_edges = np.where(rect_edges > 0, 1, 0)
+
+    print(f"Rectangle edges: max={np.max(rect_edges)}, non-zero count={np.count_nonzero(rect_edges)}")
+
+    # Hough transform
+    bins_rho = rectangle.shape[0]
+    bins_theta = rectangle.shape[1]
+    rect_accumulator, theta_range, rho_range = hough_find_lines(rect_edges, bins_theta, bins_rho)
+
+    # Debug accumulator values
+    print(f"Rectangle: Original accumulator max: {np.max(rect_accumulator)}, non-zero count: {np.count_nonzero(rect_accumulator)}")
+
+    # Non-maxima suppression
+    rect_suppressed = nonmaxima_suppression_box(rect_accumulator, k=5)
+    print(f"Rectangle: After NMS max: {np.max(rect_suppressed)}, non-zero count: {np.count_nonzero(rect_suppressed)}")
+
+    # Extract and draw lines (use original accumulator if NMS fails)
+    if np.max(rect_suppressed) > 0:
+        rho_list, theta_list = extract_lines_from_accumulator(rect_suppressed, theta_range, rho_range, threshold=0.6)
+    else:
+        rho_list, theta_list = extract_lines_from_accumulator(rect_accumulator, theta_range, rho_range, threshold=0.6)
+    print(f"Rectangle: Found {len(rho_list)} lines")
+
+    plt.subplot(1, 3, 3)
+    plt.imshow(rectangle, cmap='gray')
+    plt.title('Rectangle Image')
+
+    for rho, theta in zip(rho_list, theta_list):
+        draw_line(rho, theta, rectangle.shape[0], rectangle.shape[1], clr='r', linewidth=1.0)
+
+    plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
 def main():
     # Exercise 1
     # Exercise 1a: solved on my ipad
-    exercise1b()
-    exercise1c()
-    exercise1d()
-
-    # Exercise 2
-    exercise2a()
-    exercise2b()
-    exercise2c()
-
-    # Exercise 3
-    exercise3a()
-    exercise3b()
-    exercise3c()
+    # exercise1b()
+    # exercise1c()
+    # exercise1d()
+    #
+    # # Exercise 2
+    # exercise2a()
+    # exercise2b()
+    # exercise2c()
+    #
+    # # Exercise 3
+    # exercise3a()
+    # exercise3b()
+    # exercise3c()
+    exercise3d()
 
 
 if __name__ == "__main__":
