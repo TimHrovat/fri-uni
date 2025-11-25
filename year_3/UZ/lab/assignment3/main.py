@@ -1,8 +1,6 @@
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
-import os
-import glob
 import matplotlib.colors as mcolors
 from a3_utils import draw_line
 
@@ -45,9 +43,13 @@ def get_kernels(sigma):
 
 
 def exercise1b():
+    '''
+    Display gaussian and its derivative
+    '''
     sigmas = [1.0, 2.0, 3.0]
 
     plt.figure(figsize=(15, 5))
+    plt.suptitle('Exercise 1b: Display gaussian and its derivative')
 
     for i, sigma in enumerate(sigmas):
         plt.subplot(1, 3, i + 1)
@@ -89,6 +91,7 @@ def exercise1c():
     ]
 
     plt.figure(figsize=(15, 12))
+    plt.suptitle('Exercise 1c: Impulse response analysis')
 
     plt.subplot(2, 3, 1)
     plt.imshow(impulse, cmap='gray')
@@ -168,6 +171,7 @@ def exercise1d():
     rgb_directions = mcolors.hsv_to_rgb(hsv)
 
     plt.figure(figsize=(15, 15))
+    plt.suptitle('Exercise 1d: Test derivative functions on museum image')
 
     for i, (img, title, cmap) in enumerate([
         [museum, 'I (Original)', 'gray'],
@@ -234,6 +238,7 @@ def exercise2a():
     theta_values = [0.1, 0.2, 0.3]
 
     plt.figure(figsize=(10, 10))
+    plt.suptitle('Exercise 2a: Edge detection with different threshold values')
 
     plt.subplot(2, 2, 1)
     plt.imshow(museum, cmap='gray')
@@ -265,6 +270,7 @@ def exercise2b():
     magnitude, angles = gradient_magnitude(museum, sigma)
 
     plt.figure(figsize=(15, 10))
+    plt.suptitle('Exercise 2b: Non-maxima suppression comparison')
 
     for i, theta in enumerate(theta_values):
         edges = np.where(magnitude >= theta, magnitude, 0)
@@ -326,6 +332,7 @@ def exercise2c():
     ]
 
     plt.figure(figsize=(12, 12))
+    plt.suptitle('Exercise 2c: Canny edge')
 
     for i, (image, label) in enumerate(steps):
         plt.subplot(2, 2, i + 1)
@@ -392,6 +399,7 @@ def exercise3a():
         point, h, w, bins_theta, bins_rho)
 
     plt.figure(figsize=(12, 5))
+    plt.suptitle('Exercise 3a: Single point Hough transform')
 
     img = np.zeros((h, w))
     img[point[1], point[0]] = 1
@@ -443,6 +451,7 @@ def exercise3b():
     ]
 
     plt.figure(figsize=(15, 5))
+    plt.suptitle('Exercise 3b: Synthetic image Hough transform')
 
     for i, (image, title) in enumerate(images_data):
         accumulator, theta_range, rho_range = hough_find_lines(
@@ -508,6 +517,7 @@ def exercise3c():
     suppressed_accumulator = nonmaxima_suppression_box(accumulator, k)
 
     plt.figure(figsize=(18, 6))
+    plt.suptitle('Exercise 3c: Non-maxima suppression')
 
     plt.subplot(1, 3, 1)
     plt.imshow(rectangle_edges, cmap='gray')
@@ -582,6 +592,7 @@ def exercise3d():
     ]
 
     plt.figure(figsize=(15, 5))
+    plt.suptitle('Exercise 3d: Line detection using Hough transform')
 
     for i, (image, title, threshold) in enumerate(images_data):
         edges = cv2.Canny(image.astype(np.uint8), 50, 150)
@@ -618,6 +629,7 @@ def exercise3e():
     ]
 
     plt.figure(figsize=(12, 8))
+    plt.suptitle('Exercise 3e: Line detection on brick and pier')
 
     for i, (image, title) in enumerate(images_data):
         edges = cv2.Canny(image, 100, 200)
