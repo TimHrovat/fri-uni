@@ -1142,32 +1142,32 @@ class GAEvaluator:
 
                 # Define test parameters for each graph size
                 if graph_name == 'small_graph':
-                    start_node, end_node = 1, num_nodes
-                    target_nodes = [1, 3, 5, 7, 10] if num_nodes >= 10 else list(
-                        range(1, num_nodes+1))
-                    agent_starts = [1, 2]
+                    start_node, end_node = 4, 8
+                    target_nodes = [4, 10, 6, 2, 8]
+                    agent_starts = [4, 6]
+                    num_generations=100
                 elif graph_name == 'medium_graph':
-                    start_node, end_node = 1, num_nodes
-                    target_nodes = [1, 25, 50, 75, 99] if num_nodes >= 99 else [
-                        1, num_nodes//4, num_nodes//2, 3*num_nodes//4, num_nodes]
-                    agent_starts = [1, 2]
+                    start_node, end_node = 37, 95 
+                    target_nodes = [37, 77, 95]
+                    agent_starts = [37, 24]
+                    num_generations=1000
                 elif graph_name == 'large_graph':
-                    start_node, end_node = 1, num_nodes
-                    target_nodes = [1, 100, 200, 300, 400, 500] if num_nodes >= 500 else [
-                        1, num_nodes//5, 2*num_nodes//5, 3*num_nodes//5, 4*num_nodes//5, num_nodes]
-                    agent_starts = [1, 2]
+                    start_node, end_node = 150, 452 
+                    target_nodes = [300, 150, 175, 452]
+                    agent_starts = [150, 69]
+                    num_generations=1000
                 else:  # x_large_graph
-                    start_node, end_node = 1, num_nodes
-                    target_nodes = [1, 200, 400, 600, 800, 1000] if num_nodes >= 1000 else [
-                        1, num_nodes//5, 2*num_nodes//5, 3*num_nodes//5, 4*num_nodes//5, num_nodes]
-                    agent_starts = [1, 2]
+                    start_node, end_node = 213, 956 
+                    target_nodes = [213, 368, 981, 956]
+                    agent_starts = [213, 981, 956]
+                    num_generations=2000
 
                 # Task 1: Single source-destination
                 print("  Running Task 1...")
                 task1_ga = Task1GA(self.graph_manager, start_node, end_node)
                 task1_result = task1_ga.run(
                     population_size=50 if graph_name == 'small_graph' else 100,
-                    num_generations=100 if graph_name == 'small_graph' else 200,
+                    num_generations=num_generations,
                     show_results=False
                 )
 
@@ -1176,7 +1176,7 @@ class GAEvaluator:
                 task2_ga = Task2GA(self.graph_manager, target_nodes)
                 task2_result = task2_ga.run(
                     population_size=80 if graph_name == 'small_graph' else 120,
-                    num_generations=200 if graph_name == 'small_graph' else 500,
+                    num_generations=num_generations,
                     show_results=False
                 )
 
@@ -1186,7 +1186,7 @@ class GAEvaluator:
                                    target_nodes, agent_starts)
                 task3_result = task3_ga.run(
                     population_size=100 if graph_name == 'small_graph' else 150,
-                    num_generations=150 if graph_name == 'small_graph' else 300,
+                    num_generations=num_generations,
                     show_results=False
                 )
 
@@ -1227,13 +1227,12 @@ class GAEvaluator:
         # Read large graph
         self.graph_manager.read('graphs/large_graph.txt')
         start_node, end_node = 1, 500
-        target_nodes = [1, 100, 200, 300, 400, 500]
-        agent_starts = [1, 2]
+        target_nodes = [300, 150, 175, 452]
 
         parameter_results = []
 
         # Test different population sizes
-        pop_sizes = [50, 100, 150, 200]
+        pop_sizes = [50, 100, 150, 200, 500]
         for pop_size in pop_sizes:
             print(f"  Testing population_size={pop_size}")
 
@@ -1241,7 +1240,7 @@ class GAEvaluator:
             task1_ga = Task1GA(self.graph_manager, start_node, end_node)
             task1_result = task1_ga.run(
                 population_size=pop_size,
-                num_generations=200,
+                num_generations=1000,
                 show_results=False
             )
 
@@ -1249,7 +1248,7 @@ class GAEvaluator:
             task2_ga = Task2GA(self.graph_manager, target_nodes)
             task2_result = task2_ga.run(
                 population_size=pop_size,
-                num_generations=500,
+                num_generations=1000,
                 show_results=False
             )
 
@@ -1263,7 +1262,7 @@ class GAEvaluator:
             })
 
         # Test different generation counts
-        generations = [100, 200, 500, 1000]
+        generations = [100, 200, 500, 1000, 10000]
         for num_gen in generations:
             print(f"  Testing num_generations={num_gen}")
 
@@ -1291,14 +1290,14 @@ class GAEvaluator:
             })
 
         # Test different mutation probabilities
-        mutations = [0.1, 0.2, 0.3, 0.4]
+        mutations = [0.1, 0.2, 0.3, 0.8]
         for mut_prob in mutations:
             print(f"  Testing mutation_probability={mut_prob}")
 
             task1_ga = Task1GA(self.graph_manager, start_node, end_node)
             task1_result = task1_ga.run(
                 population_size=100,
-                num_generations=200,
+                num_generations=1000,
                 mutation_probability=mut_prob,
                 show_results=False
             )
@@ -1306,7 +1305,7 @@ class GAEvaluator:
             task2_ga = Task2GA(self.graph_manager, target_nodes)
             task2_result = task2_ga.run(
                 population_size=120,
-                num_generations=500,
+                num_generations=1000,
                 mutation_probability=mut_prob,
                 show_results=False
             )
@@ -1454,48 +1453,6 @@ class GAEvaluator:
 
         plt.tight_layout()
         plt.show()
-
-    def _create_analysis_discussion(self):
-        """Generate analysis and discussion of results"""
-        print("\n" + "="*80)
-        print("RESULTS ANALYSIS AND DISCUSSION")
-        print("="*80)
-
-        if hasattr(self, 'graph_results'):
-            print("\n1. SCALABILITY ANALYSIS:")
-            print(
-                "   - Task 1 (Single Path): Shows good scalability with consistent optimality")
-            print(
-                "   - Task 2 (Multi-node): More sensitive to graph size due to complex constraints")
-            print(
-                "   - Task 3 (Multi-agent): Highest complexity but handles coordination well")
-
-            # Calculate scalability metrics
-            small_time = self.graph_results[self.graph_results['Graph']
-                                            == 'small_graph'].iloc[0]
-            large_time = self.graph_results[self.graph_results['Graph']
-                                            == 'large_graph'].iloc[0]
-
-            t1_scaling = large_time['Task1_Time'] / \
-                small_time['Task1_Time'] if small_time['Task1_Time'] > 0 else 0
-            t2_scaling = large_time['Task2_Time'] / \
-                small_time['Task2_Time'] if small_time['Task2_Time'] > 0 else 0
-
-            print(f"   - Time scaling factor (small→large): Task 1: {
-                  t1_scaling:.1f}x, Task 2: {t2_scaling:.1f}x")
-
-        if hasattr(self, 'param_results'):
-            print("\n2. PARAMETER SENSITIVITY:")
-            print("   - Population size: Larger populations generally find better solutions but increase computation time")
-            print(
-                "   - Generations: More generations improve solution quality with diminishing returns")
-            print("   - Mutation rate: Optimal around 0.2-0.3; too high causes instability, too low reduces exploration")
-
-        print("\n3. KEY FINDINGS:")
-        print("   ✓ Genetic algorithms effectively handle complex pathfinding constraints")
-        print("   ✓ Solution quality remains high across different graph sizes")
-        print("   ✓ Parameter tuning is crucial for balancing solution quality and computation time")
-        print("   ✓ The approach scales reasonably well to larger problem instances")
 
 
 def run_comprehensive_evaluation():
