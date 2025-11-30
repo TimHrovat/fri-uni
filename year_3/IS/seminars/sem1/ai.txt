@@ -1,0 +1,65 @@
+ME:
+
+Using python language define a class named GraphManager which should handle directed weighted graphs and have two methods:
+
+- read
+- display
+
+read should get filename of the graph as a parameter
+
+the graphs are defined like this:
+
+2 // number of nodes
+1 2 4 // 1 -> 2 with weight 4
+
+display should output the graph in a plot
+
+Claude sonnet 4.5:
+
+Sure, here is the GraphManager class implemented in python:
+
+```py
+class GraphManager:
+    def __init__(self):
+        self.graph = None
+        self.num_nodes = 0
+
+    def read(self, filename: str) -> nx.DiGraph:
+        self.graph = nx.DiGraph()
+
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+            self.num_nodes = int(lines[0].strip())
+
+            for i in range(1, self.num_nodes + 1):
+                self.graph.add_node(i)
+
+            for line in lines[1:]:
+                if line.strip():
+                    parts = line.strip().split()
+                    if len(parts) >= 3:
+                        node_a, node_b, weight = int(parts[0]), int(
+                            parts[1]), float(parts[2])
+                        self.graph.add_edge(node_a, node_b, weight=weight)
+
+        return self.graph
+        
+    def display(self, title: str = "Graph Visualization") -> None:
+        plt.figure(figsize=(12, 8))
+
+        pos = nx.spring_layout(self.graph, seed=42)
+
+        nx.draw_networkx_nodes(self.graph, pos, node_color='lightblue',
+                              node_size=500, alpha=0.9)
+        nx.draw_networkx_edges(self.graph, pos, edge_color='gray',
+                              arrows=True, arrowsize=20, alpha=0.7)
+        nx.draw_networkx_labels(self.graph, pos, font_size=12, font_weight='bold')
+
+        edge_labels = nx.get_edge_attributes(self.graph, 'weight')
+        nx.draw_networkx_edge_labels(self.graph, pos, edge_labels, font_size=10)
+
+        plt.title(title, fontsize=16, fontweight='bold')
+        plt.axis('off')
+        plt.tight_layout()
+        plt.show()
+```
