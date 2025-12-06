@@ -391,8 +391,6 @@ def exercise2b():
 
 def estimate_homography(points1, points2):
     n = len(points1)
-    if n < 4:
-        raise ValueError("At least 4 point correspondences are required")
 
     A = np.zeros((2 * n, 9))
 
@@ -435,7 +433,8 @@ def exercise3a():
     axes[0, 1].set_title('Image 2')
     axes[0, 1].axis('off')
 
-    img1_warped = cv2.warpPerspective(img1, H_estimated, (img2.shape[1], img2.shape[0]))
+    img1_warped = cv2.warpPerspective(
+        img1, H_estimated, (img2.shape[1], img2.shape[0]))
     img1_warped_rgb = cv2.cvtColor(img1_warped, cv2.COLOR_BGR2RGB)
 
     axes[1, 0].imshow(img1_warped_rgb)
@@ -473,7 +472,8 @@ def exercise3a():
     axes[0, 1].set_title('Graf Image B')
     axes[0, 1].axis('off')
 
-    img1_graf_warped = cv2.warpPerspective(img1_graf, H_graf, (img2_graf.shape[1], img2_graf.shape[0]))
+    img1_graf_warped = cv2.warpPerspective(
+        img1_graf, H_graf, (img2_graf.shape[1], img2_graf.shape[0]))
     img1_graf_warped_rgb = cv2.cvtColor(img1_graf_warped, cv2.COLOR_BGR2RGB)
 
     axes[1, 0].imshow(img1_graf_warped_rgb)
@@ -492,8 +492,6 @@ def exercise3a():
 
 def ransac_homography(points1, points2, threshold=5.0, max_iterations=1000):
     n = len(points1)
-    if n < 4:
-        raise ValueError("At least 4 point correspondences are required")
 
     best_H = None
     best_inliers = None
@@ -508,7 +506,8 @@ def ransac_homography(points1, points2, threshold=5.0, max_iterations=1000):
 
         points1_homo = np.column_stack([points1, np.ones(n)])
         points2_projected = (H @ points1_homo.T).T
-        points2_projected = points2_projected[:, :2] / points2_projected[:, 2:3]
+        points2_projected = points2_projected[:,
+                                              :2] / points2_projected[:, 2:3]
 
         distances = np.linalg.norm(points2 - points2_projected, axis=1)
         inliers = distances < threshold
@@ -519,8 +518,6 @@ def ransac_homography(points1, points2, threshold=5.0, max_iterations=1000):
             best_inliers = inliers
             best_inlier_count = inlier_count
 
-
-
     return best_H, best_inliers, best_inlier_count
 
 
@@ -528,8 +525,10 @@ def exercise3c():
     img1_bgr = cv2.imread('data/graf/graf_a_small.jpg')
     img2_bgr = cv2.imread('data/graf/graf_b_small.jpg')
 
-    img1_gray = cv2.cvtColor(img1_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
-    img2_gray = cv2.cvtColor(img2_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    img1_gray = cv2.cvtColor(
+        img1_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    img2_gray = cv2.cvtColor(
+        img2_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
 
     img1_rgb = cv2.cvtColor(img1_bgr, cv2.COLOR_BGR2RGB)
     img2_rgb = cv2.cvtColor(img2_bgr, cv2.COLOR_BGR2RGB)
@@ -540,8 +539,10 @@ def exercise3c():
     if len(symmetric_matches) < 4:
         return
 
-    points1_matched = np.array([[x, y] for y, x in [points1_detected[i] for i, j in symmetric_matches]])
-    points2_matched = np.array([[x, y] for y, x in [points2_detected[j] for i, j in symmetric_matches]])
+    points1_matched = np.array(
+        [[x, y] for y, x in [points1_detected[i] for i, j in symmetric_matches]])
+    points2_matched = np.array(
+        [[x, y] for y, x in [points2_detected[j] for i, j in symmetric_matches]])
 
     H_ransac, inliers, inlier_count = ransac_homography(
         points1_matched, points2_matched, threshold=5.0, max_iterations=1000)
@@ -569,13 +570,17 @@ def exercise3c():
         color = 'green' if inliers[idx] else 'red'
         axes[0, 2].plot(p1[0], p1[1], 'o', color=color, markersize=3)
         axes[0, 2].plot(p2[0] + w, p2[1], 'o', color=color, markersize=3)
-        axes[0, 2].plot([p1[0], p2[0] + w], [p1[1], p2[1]], color=color, linewidth=1, alpha=0.7)
+        axes[0, 2].plot([p1[0], p2[0] + w], [p1[1], p2[1]],
+                        color=color, linewidth=1, alpha=0.7)
 
-    axes[0, 2].set_title(f'Matches: {inlier_count}/{len(symmetric_matches)} inliers')
+    axes[0, 2].set_title(
+        f'Matches: {inlier_count}/{len(symmetric_matches)} inliers')
     axes[0, 2].axis('off')
 
-    img1_warped_ransac = cv2.warpPerspective(img1_bgr, H_ransac, (img2_bgr.shape[1], img2_bgr.shape[0]))
-    img1_warped_ransac_rgb = cv2.cvtColor(img1_warped_ransac, cv2.COLOR_BGR2RGB)
+    img1_warped_ransac = cv2.warpPerspective(
+        img1_bgr, H_ransac, (img2_bgr.shape[1], img2_bgr.shape[0]))
+    img1_warped_ransac_rgb = cv2.cvtColor(
+        img1_warped_ransac, cv2.COLOR_BGR2RGB)
 
     axes[1, 0].imshow(img1_warped_ransac_rgb)
     axes[1, 0].set_title('Graf A Warped (RANSAC)')
@@ -587,13 +592,14 @@ def exercise3c():
     axes[1, 1].set_title('RANSAC Overlay')
     axes[1, 1].axis('off')
 
-    img1_warped_basic = cv2.warpPerspective(img1_bgr, H_basic, (img2_bgr.shape[1], img2_bgr.shape[0]))
+    img1_warped_basic = cv2.warpPerspective(
+        img1_bgr, H_basic, (img2_bgr.shape[1], img2_bgr.shape[0]))
     img1_warped_basic_rgb = cv2.cvtColor(img1_warped_basic, cv2.COLOR_BGR2RGB)
 
     overlay_basic = cv2.addWeighted(img1_warped_basic, 0.5, img2_bgr, 0.5, 0)
     overlay_basic_rgb = cv2.cvtColor(overlay_basic, cv2.COLOR_BGR2RGB)
     axes[1, 2].imshow(overlay_basic_rgb)
-    axes[1, 2].set_title('Basic DLT Overlay')
+    axes[1, 2].set_title('DLT Overlay')
     axes[1, 2].axis('off')
 
     plt.tight_layout()
@@ -602,8 +608,10 @@ def exercise3c():
     img1_ny_bgr = cv2.imread('data/newyork/newyork_a.jpg')
     img2_ny_bgr = cv2.imread('data/newyork/newyork_b.jpg')
 
-    img1_ny_gray = cv2.cvtColor(img1_ny_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
-    img2_ny_gray = cv2.cvtColor(img2_ny_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    img1_ny_gray = cv2.cvtColor(
+        img1_ny_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    img2_ny_gray = cv2.cvtColor(
+        img2_ny_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
 
     img1_ny_rgb = cv2.cvtColor(img1_ny_bgr, cv2.COLOR_BGR2RGB)
     img2_ny_rgb = cv2.cvtColor(img2_ny_bgr, cv2.COLOR_BGR2RGB)
@@ -612,20 +620,24 @@ def exercise3c():
         img1_ny_gray, img2_ny_gray, sigma=2.0, thresh=0.05)
 
     if len(symmetric_matches_ny) >= 4:
-        points1_ny_matched = np.array([[x, y] for y, x in [points1_ny[i] for i, j in symmetric_matches_ny]])
-        points2_ny_matched = np.array([[x, y] for y, x in [points2_ny[j] for i, j in symmetric_matches_ny]])
+        points1_ny_matched = np.array(
+            [[x, y] for y, x in [points1_ny[i] for i, j in symmetric_matches_ny]])
+        points2_ny_matched = np.array(
+            [[x, y] for y, x in [points2_ny[j] for i, j in symmetric_matches_ny]])
 
         H_ny_ransac, inliers_ny, inlier_count_ny = ransac_homography(
             points1_ny_matched, points2_ny_matched, threshold=10.0, max_iterations=1000)
 
         fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-        fig.suptitle('Exercise 3c: RANSAC Homography Estimation - New York Dataset')
+        fig.suptitle(
+            'Exercise 3c: RANSAC Homography Estimation - New York Dataset')
 
         axes[0].imshow(img1_ny_rgb)
         axes[0].set_title('New York A')
         axes[0].axis('off')
 
-        img1_ny_warped = cv2.warpPerspective(img1_ny_bgr, H_ny_ransac, (img2_ny_bgr.shape[1], img2_ny_bgr.shape[0]))
+        img1_ny_warped = cv2.warpPerspective(
+            img1_ny_bgr, H_ny_ransac, (img2_ny_bgr.shape[1], img2_ny_bgr.shape[0]))
         img1_ny_warped_rgb = cv2.cvtColor(img1_ny_warped, cv2.COLOR_BGR2RGB)
         axes[1].imshow(img1_ny_warped_rgb)
         axes[1].set_title('New York A Warped')
@@ -634,17 +646,176 @@ def exercise3c():
         overlay_ny = cv2.addWeighted(img1_ny_warped, 0.5, img2_ny_bgr, 0.5, 0)
         overlay_ny_rgb = cv2.cvtColor(overlay_ny, cv2.COLOR_BGR2RGB)
         axes[2].imshow(overlay_ny_rgb)
-        axes[2].set_title(f'Overlay ({inlier_count_ny}/{len(symmetric_matches_ny)} inliers)')
+        axes[2].set_title(
+            f'Overlay ({inlier_count_ny}/{len(symmetric_matches_ny)} inliers)')
         axes[2].axis('off')
 
         plt.tight_layout()
         plt.show()
 
 
+def ransac_line_fitting(points, threshold=0.05, max_iterations=1000):
+    n = len(points)
+
+    best_line = None
+    best_inliers = None
+    best_inlier_count = 0
+
+    for _ in range(max_iterations):
+        sample_indices = np.random.choice(n, 2, replace=False)
+        p1, p2 = points[sample_indices]
+
+        if abs(p2[0] - p1[0]) < 1e-6:
+            continue
+
+        k = (p2[1] - p1[1]) / (p2[0] - p1[0])
+        b = p1[1] - k * p1[0]
+
+        distances = np.abs(
+            points[:, 1] - (k * points[:, 0] + b)) / np.sqrt(1 + k**2)
+        inliers = distances < threshold
+        inlier_count = np.sum(inliers)
+
+        if inlier_count > best_inlier_count:
+            best_line = (k, b)
+            best_inliers = inliers
+            best_inlier_count = inlier_count
+
+    return best_line, best_inliers, best_inlier_count
+
+
+def exercise3b():
+    np.random.seed(42)
+
+    N = 50
+    noise_scale = 0.1
+    outlier_ratio = 0.3
+
+    start = np.array([0.1, 0.2])
+    end = np.array([0.9, 0.8])
+
+    true_k = (end[1] - start[1]) / (end[0] - start[0])
+    true_b = start[1] - true_k * start[0]
+
+    points = []
+
+    n_inliers = int(N * (1 - outlier_ratio))
+    n_outliers = N - n_inliers
+
+    for i in range(n_inliers):
+        x = np.random.uniform(0.1, 0.9)
+        y = true_k * x + true_b + np.random.normal(0, noise_scale * 0.1)
+        if 0 < y < 1:
+            points.append([x, y])
+
+    for i in range(n_outliers):
+        x = np.random.uniform(0, 1)
+        y = np.random.uniform(0, 1)
+        points.append([x, y])
+
+    points = np.array(points)
+
+    best_line, inliers, inlier_count = ransac_line_fitting(
+        points, threshold=0.05, max_iterations=1000)
+    k_est, b_est = best_line
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    fig.suptitle('Exercise 3b: RANSAC Line Fitting')
+
+    axes[0].scatter(points[:, 0], points[:, 1], c='red',
+                    s=20, alpha=0.7, label='All points')
+    x_line = np.linspace(0, 1, 100)
+    y_true = true_k * x_line + true_b
+    axes[0].plot(x_line, y_true, 'k-', linewidth=2, label='True line')
+    axes[0].set_xlim([0, 1])
+    axes[0].set_ylim([0, 1])
+    axes[0].set_title('Original Data with True Line')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    inlier_points = points[inliers]
+    outlier_points = points[~inliers]
+
+    axes[1].scatter(outlier_points[:, 0], outlier_points[:, 1],
+                    c='red', s=20, alpha=0.7, label='Outliers')
+    axes[1].scatter(inlier_points[:, 0], inlier_points[:, 1],
+                    c='green', s=20, alpha=0.7, label='Inliers')
+
+    y_est = k_est * x_line + b_est
+    axes[1].plot(x_line, y_est, 'b-', linewidth=2, label='RANSAC line')
+    axes[1].plot(x_line, y_true, 'k--', linewidth=1,
+                 alpha=0.7, label='True line')
+
+    axes[1].set_xlim([0, 1])
+    axes[1].set_ylim([0, 1])
+    axes[1].set_title(f'RANSAC Result ({inlier_count}/{len(points)} inliers)')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def calculate_ransac_iterations(inlier_ratio, confidence=0.99, sample_size=4):
+    if inlier_ratio <= 0 or inlier_ratio >= 1:
+        return float('inf')
+
+    prob_all_inliers = inlier_ratio ** sample_size
+    if prob_all_inliers == 0:
+        return float('inf')
+
+    iterations = np.log(1 - confidence) / np.log(1 - prob_all_inliers)
+    return int(np.ceil(iterations))
+
+
+def exercise3d():
+    inlier_ratios = np.arange(0.1, 1.0, 0.05)
+    confidences = [0.95, 0.99, 0.999]
+    sample_sizes = [4, 8]
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    fig.suptitle('Exercise 3d: RANSAC Iteration Calculation')
+
+    for conf in confidences:
+        iterations_4 = [calculate_ransac_iterations(
+            ratio, conf, 4) for ratio in inlier_ratios]
+        iterations_4 = [min(it, 10000) for it in iterations_4]
+        axes[0].plot(inlier_ratios, iterations_4,
+                     label=f'Confidence {conf}', linewidth=2)
+
+    axes[0].set_xlabel('Inlier Ratio')
+    axes[0].set_ylabel('Required Iterations')
+    axes[0].set_title('Sample Size = 4 (Homography)')
+    axes[0].set_yscale('log')
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend()
+    axes[0].set_ylim([1, 10000])
+
+    for sample_size in sample_sizes:
+        iterations = [calculate_ransac_iterations(
+            ratio, 0.99, sample_size) for ratio in inlier_ratios]
+        iterations = [min(it, 10000) for it in iterations]
+        axes[1].plot(inlier_ratios, iterations, label=f'Sample size {
+                     sample_size}', linewidth=2)
+
+    axes[1].set_xlabel('Inlier Ratio')
+    axes[1].set_ylabel('Required Iterations')
+    axes[1].set_title('Confidence = 0.99')
+    axes[1].set_yscale('log')
+    axes[1].grid(True, alpha=0.3)
+    axes[1].legend()
+    axes[1].set_ylim([1, 10000])
+
+    plt.tight_layout()
+    plt.show()
+
+
 if __name__ == "__main__":
-    # exercise1a()
-    # exercise1b()
-    # exercise2a()
-    # exercise2b()
+    exercise1a()
+    exercise1b()
+    exercise2a()
+    exercise2b()
     exercise3a()
+    exercise3b()
     exercise3c()
+    exercise3d()
