@@ -41,6 +41,51 @@ def hessian_points(I, sigma=1.0, thresh=0.1, box_size=5):
     return points, hessian_det_norm
 
 
+def harris_points(I, sigma=1.0, thresh=0.1, alpha=0.06, box_size=5):
+    g = gauss(sigma)
+    d = gaussdx(sigma)
+
+    Ix = convolve(I, g.T, d)
+    Iy = convolve(I, g, d.T)
+
+    Ix2 = Ix * Ix
+    Iy2 = Iy * Iy
+    IxIy = Ix * Iy
+
+    sigma_tilde = 1.6 * sigma
+    g_smooth = gauss(sigma_tilde)
+
+    Ix2_smooth = convolve(Ix2, g_smooth, g_smooth.T)
+    Iy2_smooth = convolve(Iy2, g_smooth, g_smooth.T)
+    IxIy_smooth = convolve(IxIy, g_smooth, g_smooth.T)
+
+    # Harris response: det(C) - α * trace²(C)
+    det_C = Ix2_smooth * Iy2_smooth - IxIy_smooth * IxIy_smooth
+    trace_C = Ix2_smooth + Iy2_smooth
+    harris_response = det_C - alpha * (trace_C * trace_C)
+
+    # [0,1] normalization
+    harris_response_norm = harris_response.copy()
+    if np.max(harris_response_norm) > np.min(harris_response_norm):
+        harris_response_norm = (harris_response_norm - np.min(harris_response_norm)) / \
+            (np.max(harris_response_norm) - np.min(harris_response_norm))
+
+    # thresholding
+    thresholded = harris_response_norm > thresh
+
+    # nma
+    local_maxima = maximum_filter(
+        harris_response_norm, size=box_size) == harris_response_norm
+
+    feature_points = thresholded & local_maxima
+
+    # get coordinates
+    y_coords, x_coords = np.where(feature_points)
+    points = list(zip(y_coords, x_coords))
+
+    return points, harris_response_norm
+
+
 def exercise1a():
     image_bgr = cv2.imread('data/graf/graf_a.jpg')
     image_gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
@@ -92,5 +137,64 @@ def exercise1a():
     plt.show()
 
 
+def exercise1b():
+    image_bgr = cv2.imread('data/graf/graf_a.jpg')
+    image_gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    image_gray = image_gray.astype(np.float64) / 255.0
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    plt.suptitle('Exercise 1b: Harris Feature Point Detector')
+    plt.subplots_adjust(bottom=0.3)
+
+    initial_sigma = 1.0
+    initial_thresh = 0.1
+    initial_alpha = 0.06
+
+    im1 = axes[0].imshow(np.zeros_like(image_gray), cmap='gray')
+    axes[0].axis('off')
+    axes[1].imshow(image_rgb)
+    points_plot, = axes[1].plot([], [], 'r.', markersize=2)
+    axes[1].axis('off')
+
+    ax_sigma = plt.axes([0.2, 0.15, 0.5, 0.03])
+    ax_thresh = plt.axes([0.2, 0.1, 0.5, 0.03])
+    ax_alpha = plt.axes([0.2, 0.05, 0.5, 0.03])
+
+    slider_sigma = Slider(ax_sigma, 'Sigma', 0.1, 3.0,
+                          valinit=initial_sigma, valfmt='%.1f')
+    slider_thresh = Slider(ax_thresh, 'Threshold', 0.01,
+                           0.5, valinit=initial_thresh, valfmt='%.2f')
+    slider_alpha = Slider(ax_alpha, 'Alpha', 0.01,
+                          0.2, valinit=initial_alpha, valfmt='%.3f')
+
+    def update(_):
+        sigma = slider_sigma.val
+        thresh = slider_thresh.val
+        alpha = slider_alpha.val
+
+        points, harris_response = harris_points(
+            image_gray, sigma=sigma, thresh=thresh, alpha=alpha)
+
+        im1.set_array(harris_response)
+        im1.set_clim(vmin=harris_response.min(), vmax=harris_response.max())
+        axes[0].set_title(f'Harris Response')
+
+        y_coords, x_coords = zip(*points)
+        points_plot.set_data(x_coords, y_coords)
+
+        axes[1].set_title(f'Detected Points ({len(points)})')
+
+        fig.canvas.draw()
+
+    slider_sigma.on_changed(update)
+    slider_thresh.on_changed(update)
+    slider_alpha.on_changed(update)
+    update(None)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     exercise1a()
+    exercise1b()
