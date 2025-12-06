@@ -390,43 +390,22 @@ def exercise2b():
 
 
 def estimate_homography(points1, points2):
-    """
-    Estimate homography using Direct Linear Transform (DLT) algorithm with SVD.
-
-    Args:
-        points1: Nx2 array of points in first image (x, y)
-        points2: Nx2 array of corresponding points in second image (x, y)
-
-    Returns:
-        H: 3x3 homography matrix
-    """
     n = len(points1)
     if n < 4:
         raise ValueError("At least 4 point correspondences are required")
 
-    # Construct matrix A for DLT
     A = np.zeros((2 * n, 9))
 
     for i in range(n):
         x1, y1 = points1[i]
         x2, y2 = points2[i]
-
-        # First row: -x1, -y1, -1, 0, 0, 0, x1*x2, y1*x2, x2
         A[2*i] = [-x1, -y1, -1, 0, 0, 0, x1*x2, y1*x2, x2]
-
-        # Second row: 0, 0, 0, -x1, -y1, -1, x1*y2, y1*y2, y2
         A[2*i + 1] = [0, 0, 0, -x1, -y1, -1, x1*y2, y1*y2, y2]
 
-    # Solve using SVD
     U, S, VT = np.linalg.svd(A)
-
-    # Homography is the last column of V (last row of VT)
     h = VT[-1]
-
-    # Reshape to 3x3 matrix
     H = h.reshape(3, 3)
 
-    # Normalize so that H[2,2] = 1
     if H[2, 2] != 0:
         H = H / H[2, 2]
 
@@ -434,33 +413,20 @@ def estimate_homography(points1, points2):
 
 
 def exercise3a():
-    """Exercise 3a: Basic homography estimation with provided correspondences"""
-
-    # Test with New York dataset
-    print("Testing with New York dataset...")
-
-    # Load images
     img1 = cv2.imread('data/newyork/newyork_a.jpg')
     img2 = cv2.imread('data/newyork/newyork_b.jpg')
     img1_rgb = cv2.cvtColor(img1, cv2.COLOR_BGR2RGB)
     img2_rgb = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
 
-    # Load correspondences (format: x1 y1 x2 y2)
     correspondences = np.loadtxt('data/newyork/newyork.txt')
-    points1 = correspondences[:, :2]  # x1, y1
-    points2 = correspondences[:, 2:]  # x2, y2
+    points1 = correspondences[:, :2]
+    points2 = correspondences[:, 2:]
 
-    # Estimate homography
     H_estimated = estimate_homography(points1, points2)
 
-    # Load reference homography
-    H_reference = np.loadtxt('data/newyork/H.txt')
-
-    # Display results
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Exercise 3a: Basic Homography Estimation - New York Dataset')
 
-    # Original images
     axes[0, 0].imshow(img1_rgb)
     axes[0, 0].set_title('Image 1')
     axes[0, 0].axis('off')
@@ -469,92 +435,36 @@ def exercise3a():
     axes[0, 1].set_title('Image 2')
     axes[0, 1].axis('off')
 
-    # Show correspondences
-    I_combined = np.hstack((img1_rgb, img2_rgb))
-    w = img1_rgb.shape[1]
-    axes[0, 2].imshow(I_combined)
-
-    for i in range(len(points1)):
-        p1 = points1[i]
-        p2 = points2[i]
-        color = plt.cm.tab10(i % 10)
-        axes[0, 2].plot(p1[0], p1[1], 'o', color=color, markersize=8)
-        axes[0, 2].plot(p2[0] + w, p2[1], 'o', color=color, markersize=8)
-        axes[0, 2].plot([p1[0], p2[0] + w], [p1[1], p2[1]], color=color, linewidth=2)
-
-    axes[0, 2].set_title(f'Correspondences ({len(points1)} points)')
-    axes[0, 2].axis('off')
-
-    # Apply homography transformation
-    h, w = img1.shape[:2]
     img1_warped = cv2.warpPerspective(img1, H_estimated, (img2.shape[1], img2.shape[0]))
     img1_warped_rgb = cv2.cvtColor(img1_warped, cv2.COLOR_BGR2RGB)
 
-    # Show warped image
     axes[1, 0].imshow(img1_warped_rgb)
-    axes[1, 0].set_title('Image 1 Warped (Estimated H)')
+    axes[1, 0].set_title('Image 1 Warped')
     axes[1, 0].axis('off')
 
-    # Show overlay
-    alpha = 0.5
-    overlay = cv2.addWeighted(img1_warped, alpha, img2, 1-alpha, 0)
+    overlay = cv2.addWeighted(img1_warped, 0.5, img2, 0.5, 0)
     overlay_rgb = cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB)
     axes[1, 1].imshow(overlay_rgb)
-    axes[1, 1].set_title('Overlay (α=0.5)')
+    axes[1, 1].set_title('Overlay')
     axes[1, 1].axis('off')
-
-    # Calculate and display quantitative comparison
-    H_diff = np.abs(H_estimated - H_reference)
-    frobenius_error = np.linalg.norm(H_diff, 'fro')
-
-    # Calculate reprojection error
-    points1_homo = np.column_stack([points1, np.ones(len(points1))])
-    points2_projected = (H_estimated @ points1_homo.T).T
-    points2_projected = points2_projected[:, :2] / points2_projected[:, 2:3]
-    reprojection_error = np.mean(np.linalg.norm(points2 - points2_projected, axis=1))
-
-    # Display metrics
-    metrics_text = f"""Quantitative Analysis:
-
-Frobenius Error: {frobenius_error:.4f}
-Mean Reprojection Error: {reprojection_error:.4f} pixels
-
-Estimated Homography:
-{H_estimated}
-
-Reference Homography:
-{H_reference}"""
-
-    axes[1, 2].text(0.05, 0.95, metrics_text, transform=axes[1, 2].transAxes,
-                    fontsize=10, verticalalignment='top', fontfamily='monospace')
-    axes[1, 2].set_title('Quantitative Comparison')
-    axes[1, 2].axis('off')
 
     plt.tight_layout()
     plt.show()
 
-    # Test with Graf dataset
-    print("Testing with Graf dataset...")
-
-    # Load Graf images
     img1_graf = cv2.imread('data/graf/graf_a.jpg')
     img2_graf = cv2.imread('data/graf/graf_b.jpg')
     img1_graf_rgb = cv2.cvtColor(img1_graf, cv2.COLOR_BGR2RGB)
     img2_graf_rgb = cv2.cvtColor(img2_graf, cv2.COLOR_BGR2RGB)
 
-    # Load Graf correspondences
     correspondences_graf = np.loadtxt('data/graf/graf.txt')
     points1_graf = correspondences_graf[:, :2]
     points2_graf = correspondences_graf[:, 2:]
 
-    # Estimate homography for Graf
     H_graf = estimate_homography(points1_graf, points2_graf)
 
-    # Display Graf results
-    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
     fig.suptitle('Exercise 3a: Basic Homography Estimation - Graf Dataset')
 
-    # Original images
     axes[0, 0].imshow(img1_graf_rgb)
     axes[0, 0].set_title('Graf Image A')
     axes[0, 0].axis('off')
@@ -563,7 +473,6 @@ Reference Homography:
     axes[0, 1].set_title('Graf Image B')
     axes[0, 1].axis('off')
 
-    # Apply homography
     img1_graf_warped = cv2.warpPerspective(img1_graf, H_graf, (img2_graf.shape[1], img2_graf.shape[0]))
     img1_graf_warped_rgb = cv2.cvtColor(img1_graf_warped, cv2.COLOR_BGR2RGB)
 
@@ -571,7 +480,6 @@ Reference Homography:
     axes[1, 0].set_title('Graf A Warped')
     axes[1, 0].axis('off')
 
-    # Overlay
     overlay_graf = cv2.addWeighted(img1_graf_warped, 0.5, img2_graf, 0.5, 0)
     overlay_graf_rgb = cv2.cvtColor(overlay_graf, cv2.COLOR_BGR2RGB)
     axes[1, 1].imshow(overlay_graf_rgb)
@@ -583,20 +491,6 @@ Reference Homography:
 
 
 def ransac_homography(points1, points2, threshold=5.0, max_iterations=1000):
-    """
-    Robust homography estimation using RANSAC algorithm.
-
-    Args:
-        points1: Nx2 array of points in first image (x, y)
-        points2: Nx2 array of corresponding points in second image (x, y)
-        threshold: Inlier threshold in pixels (default: 5.0)
-        max_iterations: Maximum number of RANSAC iterations (default: 1000)
-
-    Returns:
-        best_H: Best homography matrix found
-        best_inliers: Boolean array indicating inlier correspondences
-        best_inlier_count: Number of inliers for best model
-    """
     n = len(points1)
     if n < 4:
         raise ValueError("At least 4 point correspondences are required")
@@ -605,50 +499,32 @@ def ransac_homography(points1, points2, threshold=5.0, max_iterations=1000):
     best_inliers = None
     best_inlier_count = 0
 
-    for iteration in range(max_iterations):
-        # Randomly sample 4 point pairs
+    for _ in range(max_iterations):
         sample_indices = np.random.choice(n, 4, replace=False)
         sample_points1 = points1[sample_indices]
         sample_points2 = points2[sample_indices]
 
-        try:
-            # Estimate homography from sample
-            H = estimate_homography(sample_points1, sample_points2)
+        H = estimate_homography(sample_points1, sample_points2)
 
-            # Calculate reprojection errors for all points
-            points1_homo = np.column_stack([points1, np.ones(n)])
-            points2_projected = (H @ points1_homo.T).T
+        points1_homo = np.column_stack([points1, np.ones(n)])
+        points2_projected = (H @ points1_homo.T).T
+        points2_projected = points2_projected[:, :2] / points2_projected[:, 2:3]
 
-            # Convert from homogeneous coordinates
-            points2_projected = points2_projected[:, :2] / points2_projected[:, 2:3]
+        distances = np.linalg.norm(points2 - points2_projected, axis=1)
+        inliers = distances < threshold
+        inlier_count = np.sum(inliers)
 
-            # Calculate distances
-            distances = np.linalg.norm(points2 - points2_projected, axis=1)
+        if inlier_count > best_inlier_count:
+            best_H = H
+            best_inliers = inliers
+            best_inlier_count = inlier_count
 
-            # Determine inliers
-            inliers = distances < threshold
-            inlier_count = np.sum(inliers)
 
-            # Update best model if this one is better
-            if inlier_count > best_inlier_count:
-                best_H = H
-                best_inliers = inliers
-                best_inlier_count = inlier_count
-
-        except np.linalg.LinAlgError:
-            # Skip this iteration if SVD fails
-            continue
 
     return best_H, best_inliers, best_inlier_count
 
 
 def exercise3c():
-    """Exercise 3c: RANSAC homography estimation with automatic correspondences"""
-
-    # Test with Graf dataset
-    print("Testing RANSAC with Graf dataset...")
-
-    # Load images
     img1_bgr = cv2.imread('data/graf/graf_a_small.jpg')
     img2_bgr = cv2.imread('data/graf/graf_b_small.jpg')
 
@@ -658,39 +534,31 @@ def exercise3c():
     img1_rgb = cv2.cvtColor(img1_bgr, cv2.COLOR_BGR2RGB)
     img2_rgb = cv2.cvtColor(img2_bgr, cv2.COLOR_BGR2RGB)
 
-    # Find automatic correspondences using Exercise 2b
     symmetric_matches, points1_detected, points2_detected = find_matches(
         img1_gray, img2_gray, sigma=1.0, thresh=0.1)
 
     if len(symmetric_matches) < 4:
-        print("Not enough matches found for homography estimation")
         return
 
-    # Convert to point arrays
     points1_matched = np.array([[x, y] for y, x in [points1_detected[i] for i, j in symmetric_matches]])
     points2_matched = np.array([[x, y] for y, x in [points2_detected[j] for i, j in symmetric_matches]])
 
-    # Apply RANSAC
     H_ransac, inliers, inlier_count = ransac_homography(
         points1_matched, points2_matched, threshold=5.0, max_iterations=1000)
 
-    # Also compute basic DLT for comparison
     H_basic = estimate_homography(points1_matched, points2_matched)
 
-    # Display results
-    fig, axes = plt.subplots(3, 3, figsize=(18, 15))
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
     fig.suptitle('Exercise 3c: RANSAC Homography Estimation - Graf Dataset')
 
-    # Original images
     axes[0, 0].imshow(img1_rgb)
-    axes[0, 0].set_title('Graf A (Small)')
+    axes[0, 0].set_title('Graf A')
     axes[0, 0].axis('off')
 
     axes[0, 1].imshow(img2_rgb)
-    axes[0, 1].set_title('Graf B (Small)')
+    axes[0, 1].set_title('Graf B')
     axes[0, 1].axis('off')
 
-    # Show all matches
     I_combined = np.hstack((img1_rgb, img2_rgb))
     w = img1_rgb.shape[1]
     axes[0, 2].imshow(I_combined)
@@ -699,100 +567,38 @@ def exercise3c():
         p1 = points1_matched[idx]
         p2 = points2_matched[idx]
         color = 'green' if inliers[idx] else 'red'
-        axes[0, 2].plot(p1[0], p1[1], 'o', color=color, markersize=4)
-        axes[0, 2].plot(p2[0] + w, p2[1], 'o', color=color, markersize=4)
+        axes[0, 2].plot(p1[0], p1[1], 'o', color=color, markersize=3)
+        axes[0, 2].plot(p2[0] + w, p2[1], 'o', color=color, markersize=3)
         axes[0, 2].plot([p1[0], p2[0] + w], [p1[1], p2[1]], color=color, linewidth=1, alpha=0.7)
 
-    axes[0, 2].set_title(f'Matches: {len(symmetric_matches)} total, {inlier_count} inliers')
+    axes[0, 2].set_title(f'Matches: {inlier_count}/{len(symmetric_matches)} inliers')
     axes[0, 2].axis('off')
 
-    # Show only inlier matches
-    axes[1, 0].imshow(I_combined)
-    inlier_indices = np.where(inliers)[0]
-    for idx in inlier_indices:
-        p1 = points1_matched[idx]
-        p2 = points2_matched[idx]
-        axes[1, 0].plot(p1[0], p1[1], 'go', markersize=4)
-        axes[1, 0].plot(p2[0] + w, p2[1], 'go', markersize=4)
-        axes[1, 0].plot([p1[0], p2[0] + w], [p1[1], p2[1]], 'g-', linewidth=1.5)
-
-    axes[1, 0].set_title(f'RANSAC Inliers ({inlier_count} matches)')
-    axes[1, 0].axis('off')
-
-    # Apply RANSAC homography
     img1_warped_ransac = cv2.warpPerspective(img1_bgr, H_ransac, (img2_bgr.shape[1], img2_bgr.shape[0]))
     img1_warped_ransac_rgb = cv2.cvtColor(img1_warped_ransac, cv2.COLOR_BGR2RGB)
 
-    axes[1, 1].imshow(img1_warped_ransac_rgb)
-    axes[1, 1].set_title('Graf A Warped (RANSAC)')
-    axes[1, 1].axis('off')
+    axes[1, 0].imshow(img1_warped_ransac_rgb)
+    axes[1, 0].set_title('Graf A Warped (RANSAC)')
+    axes[1, 0].axis('off')
 
-    # RANSAC overlay
     overlay_ransac = cv2.addWeighted(img1_warped_ransac, 0.5, img2_bgr, 0.5, 0)
     overlay_ransac_rgb = cv2.cvtColor(overlay_ransac, cv2.COLOR_BGR2RGB)
-    axes[1, 2].imshow(overlay_ransac_rgb)
-    axes[1, 2].set_title('RANSAC Overlay')
-    axes[1, 2].axis('off')
+    axes[1, 1].imshow(overlay_ransac_rgb)
+    axes[1, 1].set_title('RANSAC Overlay')
+    axes[1, 1].axis('off')
 
-    # Apply basic DLT homography for comparison
     img1_warped_basic = cv2.warpPerspective(img1_bgr, H_basic, (img2_bgr.shape[1], img2_bgr.shape[0]))
     img1_warped_basic_rgb = cv2.cvtColor(img1_warped_basic, cv2.COLOR_BGR2RGB)
 
-    axes[2, 0].imshow(img1_warped_basic_rgb)
-    axes[2, 0].set_title('Graf A Warped (Basic DLT)')
-    axes[2, 0].axis('off')
-
-    # Basic DLT overlay
     overlay_basic = cv2.addWeighted(img1_warped_basic, 0.5, img2_bgr, 0.5, 0)
     overlay_basic_rgb = cv2.cvtColor(overlay_basic, cv2.COLOR_BGR2RGB)
-    axes[2, 1].imshow(overlay_basic_rgb)
-    axes[2, 1].set_title('Basic DLT Overlay')
-    axes[2, 1].axis('off')
-
-    # Calculate and display metrics
-    inlier_ratio = inlier_count / len(symmetric_matches)
-
-    # Calculate reprojection errors
-    points1_homo = np.column_stack([points1_matched, np.ones(len(points1_matched))])
-
-    # RANSAC reprojection error
-    points2_proj_ransac = (H_ransac @ points1_homo.T).T
-    points2_proj_ransac = points2_proj_ransac[:, :2] / points2_proj_ransac[:, 2:3]
-    error_ransac = np.mean(np.linalg.norm(points2_matched - points2_proj_ransac, axis=1))
-
-    # Basic DLT reprojection error
-    points2_proj_basic = (H_basic @ points1_homo.T).T
-    points2_proj_basic = points2_proj_basic[:, :2] / points2_proj_basic[:, 2:3]
-    error_basic = np.mean(np.linalg.norm(points2_matched - points2_proj_basic, axis=1))
-
-    metrics_text = f"""RANSAC vs Basic DLT Comparison:
-
-Total Matches: {len(symmetric_matches)}
-RANSAC Inliers: {inlier_count}
-Inlier Ratio: {inlier_ratio:.3f}
-
-Reprojection Errors:
-RANSAC: {error_ransac:.3f} pixels
-Basic DLT: {error_basic:.3f} pixels
-
-RANSAC Homography:
-{H_ransac}
-
-Basic DLT Homography:
-{H_basic}"""
-
-    axes[2, 2].text(0.05, 0.95, metrics_text, transform=axes[2, 2].transAxes,
-                    fontsize=9, verticalalignment='top', fontfamily='monospace')
-    axes[2, 2].set_title('Quantitative Comparison')
-    axes[2, 2].axis('off')
+    axes[1, 2].imshow(overlay_basic_rgb)
+    axes[1, 2].set_title('Basic DLT Overlay')
+    axes[1, 2].axis('off')
 
     plt.tight_layout()
     plt.show()
 
-    # Test with New York dataset
-    print("Testing RANSAC with New York dataset...")
-
-    # Load New York images (use full size for better feature detection)
     img1_ny_bgr = cv2.imread('data/newyork/newyork_a.jpg')
     img2_ny_bgr = cv2.imread('data/newyork/newyork_b.jpg')
 
@@ -802,7 +608,6 @@ Basic DLT Homography:
     img1_ny_rgb = cv2.cvtColor(img1_ny_bgr, cv2.COLOR_BGR2RGB)
     img2_ny_rgb = cv2.cvtColor(img2_ny_bgr, cv2.COLOR_BGR2RGB)
 
-    # Find matches with adjusted parameters for New York images
     symmetric_matches_ny, points1_ny, points2_ny = find_matches(
         img1_ny_gray, img2_ny_gray, sigma=2.0, thresh=0.05)
 
@@ -813,7 +618,6 @@ Basic DLT Homography:
         H_ny_ransac, inliers_ny, inlier_count_ny = ransac_homography(
             points1_ny_matched, points2_ny_matched, threshold=10.0, max_iterations=1000)
 
-        # Simple visualization for New York
         fig, axes = plt.subplots(1, 3, figsize=(18, 6))
         fig.suptitle('Exercise 3c: RANSAC Homography Estimation - New York Dataset')
 
@@ -835,8 +639,6 @@ Basic DLT Homography:
 
         plt.tight_layout()
         plt.show()
-    else:
-        print(f"Not enough matches found for New York dataset: {len(symmetric_matches_ny)}")
 
 
 if __name__ == "__main__":
