@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 from matplotlib.widgets import Slider
-from a4_utils import gauss, gaussdx, convolve
+from a4_utils import gauss, gaussdx, convolve, simple_descriptors, display_matches
 from scipy.ndimage import maximum_filter
 
 
@@ -195,6 +195,202 @@ def exercise1b():
     plt.show()
 
 
+def hellinger_distance(h1, h2):
+    return np.sqrt(0.5 * np.sum((np.sqrt(h1) - np.sqrt(h2))**2))
+
+
+def find_correspondences(descriptors1, descriptors2):
+    correspondences = []
+
+    for i, desc1 in enumerate(descriptors1):
+        best_match_idx = -1
+        best_distance = float('inf')
+
+        for j, desc2 in enumerate(descriptors2):
+            distance = hellinger_distance(desc1, desc2)
+            if distance < best_distance:
+                best_distance = distance
+                best_match_idx = j
+
+        correspondences.append([i, best_match_idx])
+
+    return correspondences
+
+
+def exercise2a():
+    image1_bgr = cv2.imread('data/graf/graf_a_small.jpg')
+    image2_bgr = cv2.imread('data/graf/graf_b_small.jpg')
+
+    image1_gray = cv2.cvtColor(
+        image1_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    image2_gray = cv2.cvtColor(
+        image2_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+
+    image1_rgb = cv2.cvtColor(image1_bgr, cv2.COLOR_BGR2RGB)
+    image2_rgb = cv2.cvtColor(image2_bgr, cv2.COLOR_BGR2RGB)
+
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    plt.suptitle('Exercise 2a: Feature Point Correspondences')
+    plt.subplots_adjust(bottom=0.25)
+
+    initial_sigma = 1.0
+    initial_thresh = 0.1
+
+    ax_sigma = plt.axes([0.2, 0.1, 0.5, 0.03])
+    ax_thresh = plt.axes([0.2, 0.05, 0.5, 0.03])
+    slider_sigma = Slider(ax_sigma, 'Sigma', 0.1, 3.0,
+                          valinit=initial_sigma, valfmt='%.1f')
+    slider_thresh = Slider(ax_thresh, 'Threshold', 0.01,
+                           0.5, valinit=initial_thresh, valfmt='%.2f')
+
+    def update(_):
+        sigma = slider_sigma.val
+        thresh = slider_thresh.val
+
+        points1, _ = harris_points(image1_gray, sigma=sigma, thresh=thresh)
+        points2, _ = harris_points(image2_gray, sigma=sigma, thresh=thresh)
+
+        if len(points1) == 0 or len(points2) == 0:
+            ax.clear()
+            ax.text(0.5, 0.5, 'No feature points detected',
+                    ha='center', va='center', transform=ax.transAxes)
+            fig.canvas.draw()
+            return
+
+        y1_coords, x1_coords = zip(*points1)
+        y2_coords, x2_coords = zip(*points2)
+
+        descriptors1 = simple_descriptors(
+            image1_gray, y1_coords, x1_coords, n_bins=16, window_size=20)
+        descriptors2 = simple_descriptors(
+            image2_gray, y2_coords, x2_coords, n_bins=16, window_size=20)
+
+        correspondences = find_correspondences(descriptors1, descriptors2)
+
+        pts1 = np.array([[x, y] for y, x in points1])
+        pts2 = np.array([[x, y] for y, x in points2])
+
+        ax.clear()
+        I = np.hstack((image1_rgb, image2_rgb))
+        w = image1_rgb.shape[1]
+        ax.imshow(I)
+
+        for i, j in correspondences:
+            p1 = pts1[i]
+            p2 = pts2[j]
+            clr = np.random.rand(3,)
+            ax.plot(p1[0], p1[1], color=clr, marker='.', markersize=8)
+            ax.plot(p2[0]+w, p2[1], color=clr, marker='.', markersize=8)
+            ax.plot([p1[0], p2[0]+w], [p1[1], p2[1]], color=clr, linewidth=1.5)
+
+        ax.set_title(f'Correspondences ({len(correspondences)})')
+        ax.axis('off')
+        fig.canvas.draw()
+
+    slider_sigma.on_changed(update)
+    slider_thresh.on_changed(update)
+    update(None)
+
+    plt.show()
+
+
+def find_matches(image1, image2, sigma=1.0, thresh=0.1, alpha=0.06):
+    points1, _ = harris_points(image1, sigma=sigma, thresh=thresh, alpha=alpha)
+    points2, _ = harris_points(image2, sigma=sigma, thresh=thresh, alpha=alpha)
+
+    if len(points1) == 0 or len(points2) == 0:
+        return [], points1, points2
+
+    y1_coords, x1_coords = zip(*points1)
+    y2_coords, x2_coords = zip(*points2)
+
+    descriptors1 = simple_descriptors(
+        image1, y1_coords, x1_coords, n_bins=16, window_size=20)
+    descriptors2 = simple_descriptors(
+        image2, y2_coords, x2_coords, n_bins=16, window_size=20)
+
+    matches_1to2 = find_correspondences(descriptors1, descriptors2)
+    matches_2to1 = find_correspondences(descriptors2, descriptors1)
+
+    symmetric_matches = []
+
+    for i, j in matches_1to2:
+        reverse_match = matches_2to1[j]
+        if reverse_match[1] == i:
+            symmetric_matches.append([i, j])
+
+    return symmetric_matches, points1, points2
+
+
+def exercise2b():
+    image1_bgr = cv2.imread('data/graf/graf_a_small.jpg')
+    image2_bgr = cv2.imread('data/graf/graf_b_small.jpg')
+
+    image1_gray = cv2.cvtColor(
+        image1_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+    image2_gray = cv2.cvtColor(
+        image2_bgr, cv2.COLOR_BGR2GRAY).astype(np.float64) / 255.0
+
+    image1_rgb = cv2.cvtColor(image1_bgr, cv2.COLOR_BGR2RGB)
+    image2_rgb = cv2.cvtColor(image2_bgr, cv2.COLOR_BGR2RGB)
+
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    plt.suptitle('Exercise 2b: Symmetric Feature Point Matches')
+    plt.subplots_adjust(bottom=0.25)
+
+    initial_sigma = 1.0
+    initial_thresh = 0.1
+
+    ax_sigma = plt.axes([0.2, 0.1, 0.5, 0.03])
+    ax_thresh = plt.axes([0.2, 0.05, 0.5, 0.03])
+    slider_sigma = Slider(ax_sigma, 'Sigma', 0.1, 3.0,
+                          valinit=initial_sigma, valfmt='%.1f')
+    slider_thresh = Slider(ax_thresh, 'Threshold', 0.01,
+                           0.5, valinit=initial_thresh, valfmt='%.2f')
+
+    def update(_):
+        sigma = slider_sigma.val
+        thresh = slider_thresh.val
+
+        symmetric_matches, points1, points2 = find_matches(
+            image1_gray, image2_gray, sigma=sigma, thresh=thresh)
+
+        if len(symmetric_matches) == 0:
+            ax.clear()
+            ax.text(0.5, 0.5, 'No symmetric matches found',
+                    ha='center', va='center', transform=ax.transAxes)
+            fig.canvas.draw()
+            return
+
+        pts1 = np.array([[x, y] for y, x in points1])
+        pts2 = np.array([[x, y] for y, x in points2])
+
+        ax.clear()
+        I = np.hstack((image1_rgb, image2_rgb))
+        w = image1_rgb.shape[1]
+        ax.imshow(I)
+
+        for i, j in symmetric_matches:
+            p1 = pts1[i]
+            p2 = pts2[j]
+            clr = np.random.rand(3,)
+            ax.plot(p1[0], p1[1], color=clr, marker='.', markersize=8)
+            ax.plot(p2[0]+w, p2[1], color=clr, marker='.', markersize=8)
+            ax.plot([p1[0], p2[0]+w], [p1[1], p2[1]], color=clr, linewidth=1.5)
+
+        ax.set_title(f'Symmetric Matches ({len(symmetric_matches)})')
+        ax.axis('off')
+        fig.canvas.draw()
+
+    slider_sigma.on_changed(update)
+    slider_thresh.on_changed(update)
+    update(None)
+
+    plt.show()
+
+
 if __name__ == "__main__":
     exercise1a()
     exercise1b()
+    exercise2a()
+    exercise2b()

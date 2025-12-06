@@ -23,3 +23,22 @@ Harris and Hessian detectors find similar but not identical structures. Harris i
 **Alpha (α)**: The Harris parameter (typically 0.06) balances corner vs edge detection. Smaller α makes the detector more sensitive to corners, larger α reduces sensitivity.
 
 **Threshold**: Higher thresholds give fewer but stronger corner responses, lower thresholds detect more corners but include weaker ones.
+
+## Exercise 2b
+
+### What do you notice when visualizing the correspondences? How accurate are the matches?
+
+When visualizing the correspondences, several observations can be made:
+
+**Correspondence Quality**: The basic correspondences from Exercise 2a show many matches, but not all are geometrically consistent. Some matches connect points that are clearly in different locations or structures between the two images.
+
+**Symmetric Matching Improvement**: The symmetric matching in Exercise 2b significantly improves match quality by requiring bidirectional consistency. This filtering removes many false matches, resulting in fewer but more reliable correspondences.
+
+**Match Accuracy**: The symmetric matches are generally more accurate and tend to connect corresponding structural elements (corners, edges, textured regions) between the two images. However, some incorrect matches may still remain due to:
+- Similar local descriptors in different image regions
+- Repetitive patterns or textures
+- Limited discriminative power of simple descriptors
+
+**Parameter Sensitivity**: The accuracy depends heavily on the feature detection parameters (sigma, threshold). Lower thresholds detect more points but may include less stable features, while higher thresholds give fewer but more robust matches.
+
+The symmetric matching constraint acts as an effective filter, improving correspondence reliability at the cost of reducing the total number of matches.
