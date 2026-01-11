@@ -151,7 +151,7 @@ def exercise2c():
     print("=" * 60)
 
 
-def skew_symmetric(x):
+def shear_sym(x):
     return np.array([
         [0,    -x[2],  x[1]],
         [x[2],  0,    -x[0]],
@@ -167,8 +167,8 @@ def triangulate(pts1, pts2, P1, P2):
         x1 = np.array([pts1[i, 0], pts1[i, 1], 1])
         x2 = np.array([pts2[i, 0], pts2[i, 1], 1])
 
-        x1_cross = skew_symmetric(x1)
-        x2_cross = skew_symmetric(x2)
+        x1_cross = shear_sym(x1)
+        x2_cross = shear_sym(x2)
 
         x1_cross_P1 = x1_cross @ P1
         x2_cross_P2 = x2_cross @ P2
@@ -181,7 +181,7 @@ def triangulate(pts1, pts2, P1, P2):
         X_homogeneous = VT[-1]
 
         if abs(X_homogeneous[3]) > 1e-8:
-            X_3d = X_homogeneous[:3] / X_homogeneous[3]
+            X_3d = X_homogeneous[:3] / X_homogeneous[3] #  normalizacija da zadnja postane 1
         else:
             X_3d = X_homogeneous[:3]  # inf
 

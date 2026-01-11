@@ -598,8 +598,8 @@ def exercise3c():
 
     overlay_basic = cv2.addWeighted(img1_warped_basic, 0.5, img2_bgr, 0.5, 0)
     overlay_basic_rgb = cv2.cvtColor(overlay_basic, cv2.COLOR_BGR2RGB)
-    axes[1, 2].imshow(overlay_basic_rgb)
-    axes[1, 2].set_title('DLT Overlay')
+    # axes[1, 2].imshow(overlay_basic_rgb)
+    # axes[1, 2].set_title('DLT Overlay')
     axes[1, 2].axis('off')
 
     plt.tight_layout()
@@ -816,6 +816,6 @@ if __name__ == "__main__":
     exercise2a()
     exercise2b()
     exercise3a()
-    exercise3b()
+    exercise3b()  # <-- *
     exercise3c()
-    exercise3d()
+    # exercise3d()
