@@ -3,1348 +3,1246 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from collections import Counter
 import warnings
-from sklearn.model_selection import train_test_split, GroupShuffleSplit, GridSearchCV, StratifiedKFold
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC, LinearSVC
+from sklearn.svm import LinearSVC
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, classification_report, roc_curve, auc,
-    precision_recall_curve, average_precision_score, roc_auc_score
+    confusion_matrix, roc_auc_score
 )
 from IPython.display import display, HTML
+import os
+import torch
+from transformers import (
+    AutoTokenizer, AutoModelForSequenceClassification,
+    TrainingArguments, Trainer, EarlyStoppingCallback
+)
+from datasets import Dataset as HFDataset
+from sentence_transformers import SentenceTransformer, InputExample, losses, evaluation
+from sentence_transformers import models as st_models
+from torch.utils.data import DataLoader as STDataLoader
 
-
+warnings.filterwarnings('ignore')
+os.environ['PYTHONWARNINGS'] = 'ignore'
 sns.set_style('whitegrid')
-plt.rcParams['figure.figsize'] = (12, 6)
 
 
-def load_jsonl(filepath):
-    data = []
-    with open(filepath, 'r', encoding='utf-8') as f:
-        for line in f:
-            data.append(json.loads(line.strip()))
-    return data
-
-
-def load_english_dataset():
-    train_data = load_jsonl('data/English dataset/train.jsonl')
-    test_data = load_jsonl('data/English dataset/test.jsonl')
-
-    return pd.DataFrame(train_data), pd.DataFrame(test_data)
-
-
-def t1_transform_to_binary(df, strategy='contradiction_vs_rest'):
-    """Transform multi-class labels to binary classification."""
-    df = df.copy()
-
-    if strategy == 'contradiction_vs_rest':
-        df['binary_label'] = (df['label'] == 'Contradiction').astype(int)
-
-    return df
-
-
-def t1_combine_text_pairs(df):
-    """Combine premise and hypothesis into text pairs for analysis."""
-    df = df.copy()
-
-    df['text_pair'] = df['premise'] + ' [SEP] ' + df['hypothesis']
-    df['premise_filled'] = df['premise'].replace('', '[NO PREMISE]')
-
-    return df
-
-
-
-def t1_check_missing_values(df):
-    """Check for missing values and empty strings in the dataset."""
-    text_cols = ['premise', 'hypothesis']
-    quality_data = []
-
-    for col in text_cols:
-        if col in df.columns:
-            null_count = df[col].isnull().sum()
-            empty_count = (df[col] == '').sum()
-            total_issues = null_count + empty_count
-            quality_data.append({
-                'Column': col,
-                'Null Values': null_count,
-                'Empty Strings': empty_count,
-                'Total Issues': total_issues,
-                'Issue Rate (%)': f'{(total_issues / len(df) * 100):.2f}%'
-            })
-
-    return pd.DataFrame(quality_data)
-
-
-def t1_check_duplicates(df):
-    """Check for duplicate entries in the dataset."""
-    duplicates = df.duplicated().sum()
-    text_pair_dupes = df.duplicated(subset=['premise', 'hypothesis']).sum()
-    premise_dupes = df[df['premise'] != ''].duplicated(subset=['premise']).sum()
-
-    dup_data = {
-        'Duplicate Type': [
-            'Exact duplicate rows',
-            'Duplicate text pairs (premise+hypothesis)',
-            'Duplicate premises (non-empty only)'
-        ],
-        'Count': [duplicates, text_pair_dupes, premise_dupes],
-        'Percentage': [
-            f'{(duplicates/len(df)*100):.2f}%',
-            f'{(text_pair_dupes/len(df)*100):.2f}%',
-            f'{(premise_dupes/len(df[df["premise"] != ""])*100):.2f}%' if len(df[df['premise'] != '']) > 0 else '0.00%'
-        ]
-    }
-
-    return pd.DataFrame(dup_data)
-
-
-def t1_compute_statistics(df):
-    """Compute comprehensive dataset statistics."""
-    overview_data = {
-        'Total Examples': [len(df)],
-        'Unique Documents': [df['doc_id'].nunique()],
-        'Unique Keys': [df['key'].nunique()],
-        'Avg Examples/Doc': [f"{len(df) / df['doc_id'].nunique():.2f}"],
-    }
-
-    if 'binary_label' in df.columns:
-        overview_data['Contradiction Count'] = [int(df['binary_label'].sum())]
-        overview_data['Contradiction Rate'] = [f"{(df['binary_label'].sum()/len(df)*100):.2f}%"]
-
-    if 'premise_len' in df.columns and 'hypothesis_len' in df.columns:
-        overview_data['Avg Premise Length'] = [f"{df['premise_len'].mean():.1f}"]
-        overview_data['Avg Hypothesis Length'] = [f"{df['hypothesis_len'].mean():.1f}"]
-        overview_data['Avg Total Length'] = [f"{df['total_len'].mean():.1f}"]
-
-    overview_df = pd.DataFrame(overview_data).T.reset_index()
-    overview_df.columns = ['Metric', 'Value']
-
-    label_df = None
-    if 'binary_label' in df.columns:
-        binary_counts = df['binary_label'].value_counts()
-        binary_pct = (df['binary_label'].value_counts(normalize=True) * 100)
-
-        label_df = pd.DataFrame({
-            'Class': ['Non-Contradiction', 'Contradiction'],
-            'Label': [0, 1],
-            'Count': [binary_counts[0], binary_counts[1]],
-            'Percentage': [f"{binary_pct[0]:.2f}%", f"{binary_pct[1]:.2f}%"]
-        })
-
-    return overview_df, label_df
-
-
-def t1_analyze_text_lengths(df):
-    """Analyze text lengths in the dataset."""
-    df['premise_len'] = df['premise'].apply(lambda x: len(x.split()) if x else 0)
-    df['hypothesis_len'] = df['hypothesis'].apply(lambda x: len(x.split()) if x else 0)
-    df['total_len'] = df['premise_len'] + df['hypothesis_len']
-    return df
-
-
-
-def t1_split_data(df, train_size=0.7, val_size=0.15, test_size=0.15, random_state=42):
-    """Split data into train, validation, and test sets. Groups by doc_id to prevent data leakage."""
-    unique_docs = df['doc_id'].unique()
-
-    train_docs, temp_docs = train_test_split(
-        unique_docs,
-        train_size=train_size,
-        random_state=random_state
-    )
-
-    val_ratio = val_size / (val_size + test_size)
-    val_docs, test_docs = train_test_split(
-        temp_docs,
-        train_size=val_ratio,
-        random_state=random_state
-    )
-
-    train_df = df[df['doc_id'].isin(train_docs)].reset_index(drop=True)
-    val_df = df[df['doc_id'].isin(val_docs)].reset_index(drop=True)
-    test_df = df[df['doc_id'].isin(test_docs)].reset_index(drop=True)
-
-    return train_df, val_df, test_df
-
-
-
-def t1_create_tfidf_features(train_df, val_df, test_df,
-                             max_features=5000, ngram_range=(1, 2)):
-    """Create TF-IDF features for text pairs."""
-    vectorizer = TfidfVectorizer(
-        max_features=max_features,
-        ngram_range=ngram_range,
-        min_df=2,
-        max_df=0.95,
-        strip_accents='unicode',
-        lowercase=True
-    )
-
-    X_train = vectorizer.fit_transform(train_df['text_pair'])
-    X_val = vectorizer.transform(val_df['text_pair'])
-    X_test = vectorizer.transform(test_df['text_pair'])
-
-    return vectorizer, X_train, X_val, X_test
-
-
-def t1_create_bow_features(train_df, val_df, test_df,
-                           max_features=5000, ngram_range=(1, 1)):
-    """Create Bag-of-Words features for text pairs."""
-    vectorizer = CountVectorizer(
-        max_features=max_features,
-        ngram_range=ngram_range,
-        min_df=2,
-        max_df=0.95,
-        strip_accents='unicode',
-        lowercase=True
-    )
-
-    X_train = vectorizer.fit_transform(train_df['text_pair'])
-    X_val = vectorizer.transform(val_df['text_pair'])
-    X_test = vectorizer.transform(test_df['text_pair'])
-
-    return vectorizer, X_train, X_val, X_test
-
-
-
-def t1_plot_label_distribution(df, title='Label Distribution'):
-    """Plot label distribution."""
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-    label_counts = df['label'].value_counts()
-    axes[0].bar(label_counts.index, label_counts.values, color=['#e74c3c', '#3498db', '#95a5a6'])
-    axes[0].set_xlabel('Label')
-    axes[0].set_ylabel('Count')
-    axes[0].set_title('Original Label Distribution')
-    axes[0].tick_params(axis='x', rotation=45)
-
-    for i, v in enumerate(label_counts.values):
-        axes[0].text(i, v + 20, str(v), ha='center', va='bottom', fontweight='bold')
-
-    if 'binary_label' in df.columns:
-        binary_counts = df['binary_label'].value_counts().sort_index()
-        labels = ['Non-Contradiction', 'Contradiction']
-        colors = ['#3498db', '#e74c3c']
-
-        axes[1].bar(labels, binary_counts.values, color=colors)
-        axes[1].set_xlabel('Label')
-        axes[1].set_ylabel('Count')
-        axes[1].set_title('Binary Label Distribution')
-
-        for i, v in enumerate(binary_counts.values):
-            pct = v / len(df) * 100
-            axes[1].text(i, v + 20, f'{v}\n({pct:.1f}%)',
-                        ha='center', va='bottom', fontweight='bold')
-
-    plt.tight_layout()
-    plt.show()
-
-    return fig
-
-
-def t1_plot_text_lengths(df, title='Text Length Distribution'):
-    """Plot text length distributions."""
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
-    axes[0, 0].hist(df['premise_len'], bins=50, color='#3498db', alpha=0.7, edgecolor='black')
-    axes[0, 0].set_xlabel('Premise Length (words)')
-    axes[0, 0].set_ylabel('Frequency')
-    axes[0, 0].set_title('Premise Length Distribution')
-    axes[0, 0].axvline(df['premise_len'].mean(), color='red', linestyle='--',
-                       label=f'Mean: {df["premise_len"].mean():.1f}')
-    axes[0, 0].legend()
-
-    axes[0, 1].hist(df['hypothesis_len'], bins=50, color='#e74c3c', alpha=0.7, edgecolor='black')
-    axes[0, 1].set_xlabel('Hypothesis Length (words)')
-    axes[0, 1].set_ylabel('Frequency')
-    axes[0, 1].set_title('Hypothesis Length Distribution')
-    axes[0, 1].axvline(df['hypothesis_len'].mean(), color='blue', linestyle='--',
-                       label=f'Mean: {df["hypothesis_len"].mean():.1f}')
-    axes[0, 1].legend()
-
-    axes[1, 0].hist(df['total_len'], bins=50, color='#2ecc71', alpha=0.7, edgecolor='black')
-    axes[1, 0].set_xlabel('Total Length (words)')
-    axes[1, 0].set_ylabel('Frequency')
-    axes[1, 0].set_title('Combined Text Length Distribution')
-    axes[1, 0].axvline(df['total_len'].mean(), color='red', linestyle='--',
-                       label=f'Mean: {df["total_len"].mean():.1f}')
-    axes[1, 0].legend()
-
-    scatter_colors = df['binary_label'].map({0: '#3498db', 1: '#e74c3c'}) if 'binary_label' in df.columns else '#95a5a6'
-    axes[1, 1].scatter(df['premise_len'], df['hypothesis_len'],
-                      c=scatter_colors, alpha=0.5, s=10)
-    axes[1, 1].set_xlabel('Premise Length (words)')
-    axes[1, 1].set_ylabel('Hypothesis Length (words)')
-    axes[1, 1].set_title('Premise vs Hypothesis Length')
-
-    if 'binary_label' in df.columns:
-        from matplotlib.patches import Patch
-        legend_elements = [
-            Patch(facecolor='#3498db', label='Non-Contradiction'),
-            Patch(facecolor='#e74c3c', label='Contradiction')
-        ]
-        axes[1, 1].legend(handles=legend_elements)
-
-    plt.tight_layout()
-    plt.show()
-
-    return fig
-
-
-def t1_plot_length_by_label(df, title='Text Length by Label'):
-    """Plot text length comparison across labels."""
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    text_types = [
-        ('premise_len', 'Premise Length'),
-        ('hypothesis_len', 'Hypothesis Length'),
-        ('total_len', 'Total Length')
-    ]
-
-    for idx, (col, label) in enumerate(text_types):
-        if 'binary_label' in df.columns:
-            data = [
-                df[df['binary_label'] == 0][col],
-                df[df['binary_label'] == 1][col]
-            ]
-            axes[idx].boxplot(data, tick_labels=['Non-Contradiction', 'Contradiction'])
-        else:
-            labels_unique = df['label'].unique()
-            data = [df[df['label'] == lbl][col] for lbl in labels_unique]
-            axes[idx].boxplot(data, tick_labels=labels_unique)
-
-        axes[idx].set_ylabel('Length (words)')
-        axes[idx].set_title(label)
-        axes[idx].tick_params(axis='x', rotation=45)
-
-    plt.tight_layout()
-    plt.show()
-
-    return fig
-
-
-def t1_get_examples(df, n_examples=5, label_filter=None):
-    """Get example contradictions from the dataset."""
-    if label_filter is not None:
-        if 'binary_label' in df.columns:
-            sample_df = df[df['binary_label'] == label_filter].sample(
-                n=min(n_examples, len(df[df['binary_label'] == label_filter])),
-                random_state=42
-            )
-        else:
-            sample_df = df[df['label'] == label_filter].sample(
-                n=min(n_examples, len(df[df['label'] == label_filter])),
-                random_state=42
-            )
-    else:
-        sample_df = df.sample(n=min(n_examples, len(df)), random_state=42)
-
-    examples_data = []
-    for idx, row in sample_df.iterrows():
-        example = {
-            'Document ID': row['doc_id'],
-            'Key': row['key'],
-            'Label': row['label'],
-            'Premise': row['premise'][:200] + '...' if len(row['premise']) > 200 else row['premise'],
-            'Hypothesis': row['hypothesis'][:200] + '...' if len(row['hypothesis']) > 200 else row['hypothesis']
-        }
-        if 'binary_label' in row:
-            example['Binary Label'] = 'Contradiction' if row['binary_label'] == 1 else 'Non-Contradiction'
-        examples_data.append(example)
-
-    return pd.DataFrame(examples_data)
-
-
-def t1_create_text_length_stats(df):
-    """Create text length statistics summary."""
-    text_stats = []
-
-    for text_type in ['premise_len', 'hypothesis_len', 'total_len']:
-        col_name = text_type.replace('_len', '').capitalize()
-        stats_row = {
-            'Text Type': col_name,
-            'Min': int(df[text_type].min()),
-            'Max': int(df[text_type].max()),
-            'Mean': f"{df[text_type].mean():.1f}",
-            'Median': f"{df[text_type].median():.1f}",
-            'Std Dev': f"{df[text_type].std():.1f}"
-        }
-        text_stats.append(stats_row)
-
-    return pd.DataFrame(text_stats)
-
-
-
-def t1_run_full_pipeline(dataset_choice='english'):
-    """Execute complete Task 1 pipeline."""
-    if dataset_choice == 'english':
-        train_raw, test_raw = load_english_dataset()
-        df = train_raw.copy()
-    else:
-        raise NotImplementedError("Slovene dataset processing not yet implemented")
-
-    df = t1_transform_to_binary(df)
-    df = t1_combine_text_pairs(df)
-    df = t1_analyze_text_lengths(df)
-
-    quality_df = t1_check_missing_values(df)
-    duplicate_df = t1_check_duplicates(df)
-    overview_df, label_df = t1_compute_statistics(df)
-
-    display(HTML("<h3>Data Quality Check</h3>"))
-    display(quality_df)
-
-    display(HTML("<h3>Duplicate Analysis</h3>"))
-    display(duplicate_df)
-
-    display(HTML("<h2>Dataset Overview</h2>"))
-    display(overview_df)
-
-    if label_df is not None:
-        display(HTML("<h3>Binary Classification Distribution</h3>"))
-        display(label_df)
-
-    train_df, val_df, test_df = t1_split_data(df)
-
-    tfidf_vectorizer, X_train_tfidf, X_val_tfidf, X_test_tfidf = t1_create_tfidf_features(
-        train_df, val_df, test_df
-    )
-
-    bow_vectorizer, X_train_bow, X_val_bow, X_test_bow = t1_create_bow_features(
-        train_df, val_df, test_df
-    )
-
-    fig_labels = t1_plot_label_distribution(df)
-    fig_lengths = t1_plot_text_lengths(df)
-    fig_length_by_label = t1_plot_length_by_label(df)
-
-    examples_df = t1_get_examples(df, n_examples=5, label_filter=1)
-    display(HTML("<h3>Example Contradictions</h3>"))
-    display(examples_df)
-
-    text_stats_df = t1_create_text_length_stats(df)
-    display(HTML("<h3>Text Length Statistics</h3>"))
-    display(text_stats_df)
-
-    results = {
-        'original_df': df,
-        'train_df': train_df,
-        'val_df': val_df,
-        'test_df': test_df,
-        'tfidf_vectorizer': tfidf_vectorizer,
-        'X_train_tfidf': X_train_tfidf,
-        'X_val_tfidf': X_val_tfidf,
-        'X_test_tfidf': X_test_tfidf,
-        'bow_vectorizer': bow_vectorizer,
-        'X_train_bow': X_train_bow,
-        'X_val_bow': X_val_bow,
-        'X_test_bow': X_test_bow,
-        'y_train': train_df['binary_label'].values,
-        'y_val': val_df['binary_label'].values,
-        'y_test': test_df['binary_label'].values,
-        'quality_df': quality_df,
-        'duplicate_df': duplicate_df,
-        'overview_df': overview_df,
-        'label_df': label_df,
-        'text_stats_df': text_stats_df
-    }
-
-    return results
-
-
-# ============================================================================
-# TASK 2: BASIC MACHINE LEARNING
-# ============================================================================
-
-class T2ModelTrainer:
-    """Encapsulates training logic for different ML models."""
-
-    def __init__(self, random_state=42):
-        self.random_state = random_state
-
-    def train_logistic_regression(self, X_train, y_train, **kwargs):
-        """Train Logistic Regression model."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            params = {
-                'max_iter': kwargs.get('max_iter', 1000),
-                'random_state': self.random_state,
-                'class_weight': kwargs.get('class_weight', 'balanced'),
-                'C': kwargs.get('C', 1.0),
-                'penalty': kwargs.get('penalty', 'l2'),
-                'solver': kwargs.get('solver', 'lbfgs')
-            }
-            model = LogisticRegression(**params)
-            model.fit(X_train, y_train)
-        return model
-
-    def train_random_forest(self, X_train, y_train, **kwargs):
-        """Train Random Forest model."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            params = {
-                'n_estimators': kwargs.get('n_estimators', 100),
-                'max_depth': kwargs.get('max_depth', None),
-                'min_samples_split': kwargs.get('min_samples_split', 2),
-                'min_samples_leaf': kwargs.get('min_samples_leaf', 1),
-                'random_state': self.random_state,
-                'class_weight': kwargs.get('class_weight', 'balanced'),
-                'n_jobs': kwargs.get('n_jobs', -1),
-                'verbose': 0
-            }
-            model = RandomForestClassifier(**params)
-            model.fit(X_train, y_train)
-        return model
-
-    def train_svm(self, X_train, y_train, **kwargs):
-        """Train SVM model."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            kernel = kwargs.get('kernel', 'rbf')
-
-            if kernel == 'linear' and X_train.shape[0] > 10000:
-                params = {
-                    'C': kwargs.get('C', 1.0),
-                    'random_state': self.random_state,
-                    'class_weight': kwargs.get('class_weight', 'balanced'),
-                    'max_iter': kwargs.get('max_iter', 1000)
-                }
-                model = LinearSVC(**params)
-            else:
-                params = {
-                    'C': kwargs.get('C', 1.0),
-                    'kernel': kernel,
-                    'gamma': kwargs.get('gamma', 'scale'),
-                    'random_state': self.random_state,
-                    'class_weight': kwargs.get('class_weight', 'balanced'),
-                    'probability': True
-                }
-                model = SVC(**params)
-
-            model.fit(X_train, y_train)
-        return model
-
-    def train_decision_tree(self, X_train, y_train, **kwargs):
-        """Train Decision Tree model."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            params = {
-                'max_depth': kwargs.get('max_depth', None),
-                'min_samples_split': kwargs.get('min_samples_split', 2),
-                'min_samples_leaf': kwargs.get('min_samples_leaf', 1),
-                'random_state': self.random_state,
-                'class_weight': kwargs.get('class_weight', 'balanced')
-            }
-            model = DecisionTreeClassifier(**params)
-            model.fit(X_train, y_train)
-        return model
-
-
-class T2HyperparameterTuner:
-    """Handles hyperparameter tuning with GridSearchCV."""
-
-    def __init__(self, cv=5, random_state=42, n_jobs=-1, verbose=0):
-        self.cv = cv
-        self.random_state = random_state
-        self.n_jobs = n_jobs
-        self.verbose = verbose
-
-    def get_param_grid(self, model_type):
-        """Get parameter grid for specific model type."""
-        param_grids = {
-            'logistic_regression': {
-                'C': [0.001, 0.01, 0.1, 1, 10, 100],
-                'penalty': ['l2'],
-                'solver': ['lbfgs', 'saga'],
-                'class_weight': ['balanced', None],
-                'max_iter': [1000]
+class DataLoader:
+    """Class for loading and initial processing of JSONL data"""
+
+    def __init__(self, train_path, test_path):
+        self.train_path = train_path
+        self.test_path = test_path
+        self.train_data = None
+        self.test_data = None
+
+    def load_jsonl(self, filepath):
+        """Load JSONL file and return list of dictionaries"""
+        print(f"Loading data from {filepath}")
+        data = []
+        with open(filepath, 'r', encoding='utf-8') as f:
+            for line in f:
+                data.append(json.loads(line.strip()))
+        return data
+
+    def load_all(self):
+        """Load both train and test datasets"""
+        self.train_data = self.load_jsonl(self.train_path)
+        self.test_data = self.load_jsonl(self.test_path)
+        print(f"Loaded {len(self.train_data)} training samples and {
+              len(self.test_data)} test samples\n")
+        return self.train_data, self.test_data
+
+
+class Task1:
+    """Task 1: Data Preparation and Exploration"""
+
+    def __init__(self, train_data, test_data):
+        self.train_raw = train_data
+        self.test_raw = test_data
+        self.train_df = None
+        self.val_df = None
+        self.test_df = None
+        self.full_train_df = None
+
+    def prepare_data(self, binary_labels=True):
+        """
+        Transform raw data into DataFrame format
+        For English dataset: premise, hypothesis, label
+        If binary_labels=True, transform to binary: 1=Contradiction, 0=Not Contradiction
+        """
+        print("Preparing and formatting data")
+
+        def process_dataset(data):
+            processed = []
+            for item in data:
+                processed.append({
+                    'premise': item.get('premise', ''),
+                    'hypothesis': item.get('hypothesis', ''),
+                    'label': item.get('label', '')
+                })
+            return pd.DataFrame(processed)
+
+        train_df = process_dataset(self.train_raw)
+        test_df = process_dataset(self.test_raw)
+
+        if binary_labels:
+            train_df['binary_label'] = (
+                train_df['label'] == 'Contradiction').astype(int)
+            test_df['binary_label'] = (
+                test_df['label'] == 'Contradiction').astype(int)
+
+        self.full_train_df = train_df
+        self.test_df = test_df
+
+        train_df, val_df = train_test_split(
+            train_df,
+            test_size=0.15,
+            random_state=42,
+            stratify=train_df['binary_label']
+        )
+
+        self.train_df = train_df.reset_index(drop=True)
+        self.val_df = val_df.reset_index(drop=True)
+
+        print(f"Train set: {len(self.train_df)} samples")
+        print(f"Validation set: {len(self.val_df)} samples")
+        print(f"Test set: {len(self.test_df)} samples\n")
+
+        return self.train_df, self.val_df, self.test_df
+
+    def exploratory_analysis(self):
+        """Perform exploratory data analysis"""
+        print("Performing exploratory data analysis\n")
+
+        df = self.full_train_df.copy()
+
+        missing_values = df.isnull().sum()
+        duplicates = df.duplicated().sum()
+
+        df['premise_length'] = df['premise'].str.len()
+        df['hypothesis_length'] = df['hypothesis'].str.len()
+        df['premise_words'] = df['premise'].str.split().str.len()
+        df['hypothesis_words'] = df['hypothesis'].str.split().str.len()
+
+        analysis_results = {
+            'total_samples': len(df),
+            'missing_values': missing_values.to_dict(),
+            'duplicate_entries': duplicates,
+            'label_distribution': df['binary_label'].value_counts().to_dict(),
+            'class_balance': {
+                'contradiction': (df['binary_label'] == 1).sum(),
+                'not_contradiction': (df['binary_label'] == 0).sum(),
+                'contradiction_pct': ((df['binary_label'] == 1).sum() / len(df) * 100)
             },
-            'random_forest': {
-                'n_estimators': [50, 100, 200],
-                'max_depth': [10, 20, 30, None],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
-                'class_weight': ['balanced', 'balanced_subsample', None]
+            'premise_stats': {
+                'mean_chars': df['premise_length'].mean(),
+                'median_chars': df['premise_length'].median(),
+                'mean_words': df['premise_words'].mean(),
+                'median_words': df['premise_words'].median()
             },
-            'svm': {
-                'C': [0.1, 1, 10],
-                'kernel': ['linear', 'rbf'],
-                'gamma': ['scale', 'auto'],
-                'class_weight': ['balanced', None]
-            },
-            'decision_tree': {
-                'max_depth': [5, 10, 20, 30, None],
-                'min_samples_split': [2, 5, 10, 20],
-                'min_samples_leaf': [1, 2, 4, 8],
-                'class_weight': ['balanced', None]
+            'hypothesis_stats': {
+                'mean_chars': df['hypothesis_length'].mean(),
+                'median_chars': df['hypothesis_length'].median(),
+                'mean_words': df['hypothesis_words'].mean(),
+                'median_words': df['hypothesis_words'].median()
             }
         }
-        return param_grids.get(model_type, {})
 
-    def tune_model(self, model, param_grid, X_train, y_train):
-        """Perform grid search with cross-validation."""
-        # Suppress all warnings during grid search
+        return analysis_results, df
+
+    def visualize_data(self, df, analysis_results):
+        """Create visualizations for data exploration"""
+        print("Generating visualizations\n")
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        label_counts = df['binary_label'].value_counts().sort_index()
+        label_names = ['Not Contradiction', 'Contradiction']
+        ax.bar(range(len(label_counts)), label_counts.values,
+               color=['#3498db', '#e74c3c'])
+        ax.set_title('Binary Label Distribution',
+                     fontsize=14, fontweight='bold')
+        ax.set_ylabel('Count')
+        ax.set_xticks(range(len(label_counts)))
+        ax.set_xticklabels(label_names, rotation=45)
+        for i, v in enumerate(label_counts.values):
+            ax.text(i, v + 50, str(v), ha='center', fontweight='bold')
+        plt.tight_layout()
+        plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.hist(df['premise_length'], bins=50,
+                color='#2ecc71', alpha=0.7, edgecolor='black')
+        ax.axvline(df['premise_length'].mean(), color='red',
+                   linestyle='--', linewidth=2, label='Mean')
+        ax.axvline(df['premise_length'].median(), color='blue',
+                   linestyle='--', linewidth=2, label='Median')
+        ax.set_title('Premise Length Distribution (Characters)',
+                     fontsize=14, fontweight='bold')
+        ax.set_xlabel('Length')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.hist(df['hypothesis_length'], bins=50,
+                color='#f39c12', alpha=0.7, edgecolor='black')
+        ax.axvline(df['hypothesis_length'].mean(), color='red',
+                   linestyle='--', linewidth=2, label='Mean')
+        ax.axvline(df['hypothesis_length'].median(), color='blue',
+                   linestyle='--', linewidth=2, label='Median')
+        ax.set_title('Hypothesis Length Distribution (Characters)',
+                     fontsize=14, fontweight='bold')
+        ax.set_xlabel('Length')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.hist(df['premise_words'], bins=30,
+                color='#9b59b6', alpha=0.7, edgecolor='black')
+        ax.axvline(df['premise_words'].mean(), color='red',
+                   linestyle='--', linewidth=2, label='Mean')
+        ax.set_title('Premise Length Distribution (Words)',
+                     fontsize=14, fontweight='bold')
+        ax.set_xlabel('Word Count')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.hist(df['hypothesis_words'], bins=30,
+                color='#1abc9c', alpha=0.7, edgecolor='black')
+        ax.axvline(df['hypothesis_words'].mean(), color='red',
+                   linestyle='--', linewidth=2, label='Mean')
+        ax.set_title('Hypothesis Length Distribution (Words)',
+                     fontsize=14, fontweight='bold')
+        ax.set_xlabel('Word Count')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        label_by_length = df.groupby(pd.cut(df['premise_length'], bins=5))[
+            'binary_label'].value_counts().unstack()
+        label_by_length.plot(kind='bar', ax=ax, color=['#3498db', '#e74c3c'])
+        ax.set_title('Label Distribution by Premise Length',
+                     fontsize=14, fontweight='bold')
+        ax.set_xlabel('Premise Length Range')
+        ax.set_ylabel('Count')
+        ax.legend(title='Label', labels=['Not Contradiction', 'Contradiction'])
+        ax.tick_params(axis='x', rotation=45)
+        plt.tight_layout()
+        plt.show()
+
+        html_table = f"""
+        <h3>Data Analysis Summary</h3>
+        <table border="1" style="border-collapse: collapse; width: 100%; margin: 20px 0;">
+            <tr style="background-color: #3498db; color: white;">
+                <th style="padding: 10px;">Metric</th>
+                <th style="padding: 10px;">Value</th>
+            </tr>
+            <tr>
+                <td style="padding: 8px;"><b>Total Samples</b></td>
+                <td style="padding: 8px;">{analysis_results['total_samples']}</td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+                <td style="padding: 8px;"><b>Duplicate Entries</b></td>
+                <td style="padding: 8px;">{analysis_results['duplicate_entries']}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px;"><b>Contradiction Samples (1)</b></td>
+                <td style="padding: 8px;">{analysis_results['class_balance']['contradiction']}</td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+                <td style="padding: 8px;"><b>Not Contradiction Samples (0)</b></td>
+                <td style="padding: 8px;">{analysis_results['class_balance']['not_contradiction']}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px;"><b>Contradiction Percentage</b></td>
+                <td style="padding: 8px;">{analysis_results['class_balance']['contradiction_pct']:.2f}%</td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+                <td style="padding: 8px;"><b>Mean Premise Length (chars)</b></td>
+                <td style="padding: 8px;">{analysis_results['premise_stats']['mean_chars']:.1f}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px;"><b>Mean Hypothesis Length (chars)</b></td>
+                <td style="padding: 8px;">{analysis_results['hypothesis_stats']['mean_chars']:.1f}</td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+                <td style="padding: 8px;"><b>Mean Premise Length (words)</b></td>
+                <td style="padding: 8px;">{analysis_results['premise_stats']['mean_words']:.1f}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px;"><b>Mean Hypothesis Length (words)</b></td>
+                <td style="padding: 8px;">{analysis_results['hypothesis_stats']['mean_words']:.1f}</td>
+            </tr>
+        </table>
+        """
+
+        display(HTML(html_table))
+
+
+def task_1_test():
+    """Test function for Task 1: Data Preparation and Exploration"""
+    print("="*80)
+    print("TASK 1: DATA PREPARATION AND EXPLORATION")
+    print("="*80)
+    print()
+
+    loader = DataLoader(
+        train_path='data/English dataset/train.jsonl',
+        test_path='data/English dataset/test.jsonl'
+    )
+    train_data, test_data = loader.load_all()
+
+    task1 = Task1(train_data, test_data)
+
+    train_df, val_df, test_df = task1.prepare_data(binary_labels=True)
+
+    analysis_results, df_with_stats = task1.exploratory_analysis()
+
+    task1.visualize_data(df_with_stats, analysis_results)
+
+    print("="*80)
+    print("TASK 1 COMPLETED SUCCESSFULLY")
+    print("="*80)
+    print()
+
+    return task1, train_df, val_df, test_df
+
+
+class Task2:
+    """Task 2: Traditional Machine Learning Models"""
+
+    def __init__(self, train_df, val_df, test_df):
+        self.train_df = train_df
+        self.val_df = val_df
+        self.test_df = test_df
+        self.vectorizer = None
+        self.models = {}
+        self.results = {}
+
+    def prepare_text_features(self, max_features=5000):
+        """Create text representations using TF-IDF"""
+        print("Creating TF-IDF features")
+
+        self.train_df['combined_text'] = self.train_df['premise'] + \
+            ' [SEP] ' + self.train_df['hypothesis']
+        self.val_df['combined_text'] = self.val_df['premise'] + \
+            ' [SEP] ' + self.val_df['hypothesis']
+        self.test_df['combined_text'] = self.test_df['premise'] + \
+            ' [SEP] ' + self.test_df['hypothesis']
+
+        self.vectorizer = TfidfVectorizer(
+            max_features=max_features,
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.95,
+            sublinear_tf=True
+        )
+
+        X_train = self.vectorizer.fit_transform(self.train_df['combined_text'])
+        X_val = self.vectorizer.transform(self.val_df['combined_text'])
+        X_test = self.vectorizer.transform(self.test_df['combined_text'])
+
+        y_train = self.train_df['binary_label'].values
+        y_val = self.val_df['binary_label'].values
+        y_test = self.test_df['binary_label'].values
+
+        print(f"Feature matrix shape: {X_train.shape}\n")
+
+        return X_train, X_val, X_test, y_train, y_val, y_test
+
+    def train_logistic_regression(self, X_train, y_train, X_val, y_val):
+        """Train Logistic Regression with hyperparameter tuning"""
+        print("Training Logistic Regression")
+
+        param_grid = {
+            'C': [0.1, 1.0, 10.0],
+            'penalty': ['l2'],
+            'max_iter': [1000]
+        }
+
+        lr = LogisticRegression(random_state=42, solver='lbfgs')
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-
             grid_search = GridSearchCV(
-                estimator=model,
-                param_grid=param_grid,
-                cv=StratifiedKFold(n_splits=self.cv, shuffle=True, random_state=self.random_state),
-                scoring='f1',
-                n_jobs=self.n_jobs,
-                verbose=0,  # No console output
-                return_train_score=True,
-                error_score='raise'
-            )
-
+                lr, param_grid, cv=3, scoring='f1', n_jobs=1, verbose=0)
             grid_search.fit(X_train, y_train)
 
-        return {
-            'best_model': grid_search.best_estimator_,
-            'best_params': grid_search.best_params_,
-            'best_score': grid_search.best_score_,
-            'cv_results': pd.DataFrame(grid_search.cv_results_)
+        best_model = grid_search.best_estimator_
+        self.models['Logistic Regression'] = best_model
+
+        y_pred_val = best_model.predict(X_val)
+        y_pred_proba_val = best_model.predict_proba(X_val)[:, 1]
+
+        metrics = self._calculate_metrics(y_val, y_pred_val, y_pred_proba_val)
+        self.results['Logistic Regression'] = metrics
+
+        print(f"Best parameters: {grid_search.best_params_}")
+        print(f"Validation F1: {metrics['f1']:.4f}\n")
+
+        return best_model
+
+    def train_random_forest(self, X_train, y_train, X_val, y_val):
+        """Train Random Forest with hyperparameter tuning"""
+        print("Training Random Forest")
+
+        param_grid = {
+            'n_estimators': [100, 200],
+            'max_depth': [10, 20, None],
+            'min_samples_split': [2, 5],
+            'min_samples_leaf': [1, 2]
         }
 
+        rf = RandomForestClassifier(random_state=42, n_jobs=-1)
 
-class T2ModelEvaluator:
-    """Handles model evaluation and metric computation."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            grid_search = GridSearchCV(
+                rf, param_grid, cv=3, scoring='f1', n_jobs=1, verbose=0)
+            grid_search.fit(X_train, y_train)
 
-    def evaluate(self, model, X, y, dataset_name='validation'):
-        """Compute comprehensive evaluation metrics."""
-        y_pred = model.predict(X)
+        best_model = grid_search.best_estimator_
+        self.models['Random Forest'] = best_model
 
-        # Get probability predictions if available
-        y_prob = None
-        if hasattr(model, 'predict_proba'):
-            y_prob = model.predict_proba(X)[:, 1]
-        elif hasattr(model, 'decision_function'):
-            y_prob = model.decision_function(X)
+        y_pred_val = best_model.predict(X_val)
+        y_pred_proba_val = best_model.predict_proba(X_val)[:, 1]
 
-        results = {
-            'dataset': dataset_name,
-            'accuracy': accuracy_score(y, y_pred),
-            'precision': precision_score(y, y_pred, zero_division=0),
-            'recall': recall_score(y, y_pred, zero_division=0),
-            'f1': f1_score(y, y_pred, zero_division=0),
-            'confusion_matrix': confusion_matrix(y, y_pred),
-            'classification_report': classification_report(y, y_pred,
-                                                           target_names=['Non-Contradiction', 'Contradiction'],
-                                                           output_dict=True,
-                                                           zero_division=0),
-            'predictions': y_pred,
-            'probabilities': y_prob
+        metrics = self._calculate_metrics(y_val, y_pred_val, y_pred_proba_val)
+        self.results['Random Forest'] = metrics
+
+        print(f"Best parameters: {grid_search.best_params_}")
+        print(f"Validation F1: {metrics['f1']:.4f}\n")
+
+        return best_model
+
+    def train_svm(self, X_train, y_train, X_val, y_val):
+        """Train SVM with hyperparameter tuning"""
+        print("Training SVM")
+
+        param_grid = {
+            'C': [0.1, 1.0, 10.0],
+            'loss': ['hinge', 'squared_hinge']
         }
 
-        if y_prob is not None:
-            try:
-                results['roc_auc'] = roc_auc_score(y, y_prob)
-                results['avg_precision'] = average_precision_score(y, y_prob)
-            except:
-                results['roc_auc'] = None
-                results['avg_precision'] = None
-        else:
-            results['roc_auc'] = None
-            results['avg_precision'] = None
+        svm = LinearSVC(random_state=42, max_iter=2000, dual=False)
 
-        return results
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            grid_search = GridSearchCV(
+                svm, param_grid, cv=3, scoring='f1', n_jobs=1, verbose=0)
+            grid_search.fit(X_train, y_train)
 
-    def create_confusion_matrix_df(self, cm, labels=['Non-Contradiction', 'Contradiction']):
-        """Convert confusion matrix to formatted DataFrame."""
-        cm_df = pd.DataFrame(
-            cm,
-            index=[f'True {label}' for label in labels],
-            columns=[f'Pred {label}' for label in labels]
-        )
+        best_model = grid_search.best_estimator_
+        self.models['SVM'] = best_model
 
-        cm_pct = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis] * 100
+        y_pred_val = best_model.predict(X_val)
 
-        cm_display = pd.DataFrame(
-            [[f'{cm[i,j]} ({cm_pct[i,j]:.1f}%)' for j in range(len(labels))]
-             for i in range(len(labels))],
-            index=[f'True {label}' for label in labels],
-            columns=[f'Pred {label}' for label in labels]
-        )
+        metrics = self._calculate_metrics(y_val, y_pred_val, None)
+        self.results['SVM'] = metrics
 
-        return cm_display
+        print(f"Best parameters: {grid_search.best_params_}")
+        print(f"Validation F1: {metrics['f1']:.4f}\n")
 
-    def create_classification_report_df(self, report_dict):
-        """Convert classification report to DataFrame."""
-        df = pd.DataFrame(report_dict).transpose()
-        df = df.round(3)
-        return df
+        return best_model
 
+    def train_decision_tree(self, X_train, y_train, X_val, y_val):
+        """Train Decision Tree with hyperparameter tuning"""
+        print("Training Decision Tree")
 
-class T2Visualizer:
-    """Handles all Task 2 visualizations."""
-
-    def __init__(self):
-        self.colors = {
-            'contradiction': '#e74c3c',
-            'non_contradiction': '#3498db',
-            'neutral': '#95a5a6',
-            'success': '#2ecc71',
-            'warning': '#f39c12'
-        }
-        self.model_colors = {
-            'Logistic Regression': '#3498db',
-            'Random Forest': '#2ecc71',
-            'SVM': '#e74c3c',
-            'Decision Tree': '#f39c12'
+        param_grid = {
+            'max_depth': [10, 20, 30, None],
+            'min_samples_split': [2, 5, 10],
+            'min_samples_leaf': [1, 2, 4]
         }
 
-    def plot_confusion_matrix(self, cm, model_name, normalize=True):
-        """Plot confusion matrix as heatmap."""
-        fig, ax = plt.subplots(figsize=(8, 6))
+        dt = DecisionTreeClassifier(random_state=42)
 
-        if normalize:
-            cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-            sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap='Blues',
-                       cbar_kws={'label': 'Percentage'},
-                       xticklabels=['Non-Contradiction', 'Contradiction'],
-                       yticklabels=['Non-Contradiction', 'Contradiction'],
-                       ax=ax)
-        else:
-            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                       cbar_kws={'label': 'Count'},
-                       xticklabels=['Non-Contradiction', 'Contradiction'],
-                       yticklabels=['Non-Contradiction', 'Contradiction'],
-                       ax=ax)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            grid_search = GridSearchCV(
+                dt, param_grid, cv=3, scoring='f1', n_jobs=1, verbose=0)
+            grid_search.fit(X_train, y_train)
 
-        ax.set_xlabel('Predicted Label')
-        ax.set_ylabel('True Label')
-        ax.set_title(f'Confusion Matrix - {model_name}')
-        plt.tight_layout()
+        best_model = grid_search.best_estimator_
+        self.models['Decision Tree'] = best_model
 
-        return fig
+        y_pred_val = best_model.predict(X_val)
+        y_pred_proba_val = best_model.predict_proba(X_val)[:, 1]
 
-    def plot_confusion_matrices_grid(self, results_dict, feature_type='TF-IDF'):
-        """Plot confusion matrices for all models in a grid."""
-        fig, axes = plt.subplots(2, 2, figsize=(16, 14))
-        axes = axes.flatten()
+        metrics = self._calculate_metrics(y_val, y_pred_val, y_pred_proba_val)
+        self.results['Decision Tree'] = metrics
 
-        model_names = ['Logistic Regression', 'Random Forest', 'SVM', 'Decision Tree']
+        print(f"Best parameters: {grid_search.best_params_}")
+        print(f"Validation F1: {metrics['f1']:.4f}\n")
 
-        for idx, (model_key, model_name) in enumerate(zip(
-            ['logistic_regression', 'random_forest', 'svm', 'decision_tree'],
-            model_names
-        )):
-            if model_key in results_dict:
-                cm = results_dict[model_key]['confusion_matrix']
-                cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        return best_model
 
-                sns.heatmap(cm_normalized, annot=True, fmt='.2%', cmap='Blues',
-                           xticklabels=['Non-Contr.', 'Contr.'],
-                           yticklabels=['Non-Contr.', 'Contr.'],
-                           ax=axes[idx], cbar_kws={'label': 'Percentage'})
+    def _calculate_metrics(self, y_true, y_pred, y_pred_proba=None):
+        """Calculate evaluation metrics"""
+        metrics = {
+            'accuracy': accuracy_score(y_true, y_pred),
+            'precision': precision_score(y_true, y_pred, zero_division=0),
+            'recall': recall_score(y_true, y_pred, zero_division=0),
+            'f1': f1_score(y_true, y_pred, zero_division=0)
+        }
 
-                axes[idx].set_xlabel('Predicted Label')
-                axes[idx].set_ylabel('True Label')
-                axes[idx].set_title(f'{model_name} ({feature_type})')
+        if y_pred_proba is not None:
+            metrics['roc_auc'] = roc_auc_score(y_true, y_pred_proba)
 
-        plt.tight_layout()
-        plt.show()
-        return fig
+        return metrics
 
-    def plot_model_comparison(self, comparison_df, feature_type='TF-IDF'):
-        """Plot model comparison across metrics."""
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        axes = axes.flatten()
+    def evaluate_on_test(self, X_test, y_test):
+        """Evaluate all models on test set"""
+        print("Evaluating models on test set\n")
+
+        test_results = {}
+
+        for model_name, model in self.models.items():
+            y_pred = model.predict(X_test)
+
+            if hasattr(model, 'predict_proba'):
+                y_pred_proba = model.predict_proba(X_test)[:, 1]
+                metrics = self._calculate_metrics(y_test, y_pred, y_pred_proba)
+            else:
+                metrics = self._calculate_metrics(y_test, y_pred, None)
+
+            test_results[model_name] = metrics
+            print(
+                f"{model_name} - Test F1: {metrics['f1']:.4f}, Accuracy: {metrics['accuracy']:.4f}")
+
+        print()
+        return test_results
+
+    def visualize_results(self, val_results, test_results):
+        """Visualize model comparison"""
+        print("Generating performance visualizations\n")
 
         metrics = ['accuracy', 'precision', 'recall', 'f1']
-        metric_labels = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
+        model_names = list(val_results.keys())
 
-        models = comparison_df['model'].values
-        x = np.arange(len(models))
-        width = 0.6
+        x = np.arange(len(model_names))
+        width = 0.2
 
-        for idx, (metric, label) in enumerate(zip(metrics, metric_labels)):
-            values = comparison_df[metric].values
-            colors = [self.model_colors.get(m, self.colors['neutral']) for m in models]
+        fig, ax = plt.subplots(figsize=(14, 6))
+        for i, metric in enumerate(metrics):
+            val_scores = [val_results[m][metric] for m in model_names]
+            ax.bar(x + i * width, val_scores, width, label=metric.capitalize())
 
-            bars = axes[idx].bar(x, values, width, color=colors, alpha=0.7, edgecolor='black')
-            axes[idx].set_xlabel('Model')
-            axes[idx].set_ylabel(label)
-            axes[idx].set_title(f'{label} Comparison ({feature_type})')
-            axes[idx].set_xticks(x)
-            axes[idx].set_xticklabels(models, rotation=45, ha='right')
-            axes[idx].set_ylim(0, 1.05)
-            axes[idx].grid(axis='y', alpha=0.3)
-
-            for bar, val in zip(bars, values):
-                height = bar.get_height()
-                axes[idx].text(bar.get_x() + bar.get_width()/2., height + 0.02,
-                             f'{val:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
-
+        ax.set_xlabel('Models', fontsize=12)
+        ax.set_ylabel('Score', fontsize=12)
+        ax.set_title('Validation Set Performance',
+                     fontsize=14, fontweight='bold')
+        ax.set_xticks(x + width * 1.5)
+        ax.set_xticklabels(model_names, rotation=45, ha='right')
+        ax.legend()
+        ax.grid(axis='y', alpha=0.3)
         plt.tight_layout()
         plt.show()
-        return fig
 
-    def plot_roc_curves(self, models_dict, results_dict, X_test, y_test, feature_type='TF-IDF'):
-        """Plot ROC curves for all models."""
+        fig, ax = plt.subplots(figsize=(14, 6))
+        for i, metric in enumerate(metrics):
+            test_scores = [test_results[m][metric] for m in model_names]
+            ax.bar(x + i * width, test_scores,
+                   width, label=metric.capitalize())
+
+        ax.set_xlabel('Models', fontsize=12)
+        ax.set_ylabel('Score', fontsize=12)
+        ax.set_title('Test Set Performance', fontsize=14, fontweight='bold')
+        ax.set_xticks(x + width * 1.5)
+        ax.set_xticklabels(model_names, rotation=45, ha='right')
+        ax.legend()
+        ax.grid(axis='y', alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
+        results_df = pd.DataFrame({
+            'Model': model_names,
+            'Val_Accuracy': [val_results[m]['accuracy'] for m in model_names],
+            'Val_F1': [val_results[m]['f1'] for m in model_names],
+            'Test_Accuracy': [test_results[m]['accuracy'] for m in model_names],
+            'Test_F1': [test_results[m]['f1'] for m in model_names]
+        })
+
+        html_table = results_df.to_html(
+            index=False, float_format=lambda x: f'{x:.4f}')
+        html_table = f"<h3>Model Performance Summary</h3>{html_table}"
+        html_table = html_table.replace(
+            '<table', '<table style="border-collapse: collapse; width: 100%;"')
+        html_table = html_table.replace(
+            '<th>', '<th style="background-color: #3498db; color: white; padding: 10px;">')
+        html_table = html_table.replace(
+            '<td>', '<td style="padding: 8px; border: 1px solid #ddd;">')
+
+        display(HTML(html_table))
+
+
+def task_2_test():
+    """Test function for Task 2: Traditional Machine Learning Models"""
+    print("="*80)
+    print("TASK 2: TRADITIONAL MACHINE LEARNING")
+    print("="*80)
+    print()
+
+    loader = DataLoader(
+        train_path='data/English dataset/train.jsonl',
+        test_path='data/English dataset/test.jsonl'
+    )
+    train_data, test_data = loader.load_all()
+
+    task1 = Task1(train_data, test_data)
+    train_df, val_df, test_df = task1.prepare_data(binary_labels=True)
+
+    task2 = Task2(train_df, val_df, test_df)
+
+    X_train, X_val, X_test, y_train, y_val, y_test = task2.prepare_text_features(
+        max_features=5000
+    )
+
+    task2.train_logistic_regression(X_train, y_train, X_val, y_val)
+    task2.train_random_forest(X_train, y_train, X_val, y_val)
+    task2.train_svm(X_train, y_train, X_val, y_val)
+    task2.train_decision_tree(X_train, y_train, X_val, y_val)
+
+    test_results = task2.evaluate_on_test(X_test, y_test)
+
+    task2.visualize_results(task2.results, test_results)
+
+    print("="*80)
+    print("TASK 2 COMPLETED SUCCESSFULLY")
+    print("="*80)
+    print()
+
+    return task2, test_results
+
+
+class Task3:
+    """Task 3: Transformer-based Classifier"""
+
+    def __init__(self, train_df, val_df, test_df, model_name='nlpaueb/legal-bert-base-uncased'):
+        self.train_df = train_df.copy()
+        self.val_df = val_df.copy()
+        self.test_df = test_df.copy()
+        self.model_name = model_name
+        self.tokenizer = None
+        self.model = None
+        self.trainer = None
+        self.results = {}
+
+    def prepare_datasets(self, max_length=512):
+        """Prepare datasets for transformer training"""
+        print(f"Preparing datasets for {self.model_name}")
+        print(f"Max sequence length: {max_length}")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+
+        def create_hf_dataset(df):
+            return HFDataset.from_dict({
+                'premise': df['premise'].tolist(),
+                'hypothesis': df['hypothesis'].tolist(),
+                'label': df['binary_label'].tolist()
+            })
+
+        train_dataset = create_hf_dataset(self.train_df)
+        val_dataset = create_hf_dataset(self.val_df)
+        test_dataset = create_hf_dataset(self.test_df)
+
+        def tokenize_function(examples):
+            return self.tokenizer(
+                examples['premise'],
+                examples['hypothesis'],
+                truncation=True,
+                padding='max_length',
+                max_length=max_length
+            )
+
+        print("Tokenizing datasets...")
+        train_dataset = train_dataset.map(tokenize_function, batched=True)
+        val_dataset = val_dataset.map(tokenize_function, batched=True)
+        test_dataset = test_dataset.map(tokenize_function, batched=True)
+
+        train_dataset = train_dataset.remove_columns(['premise', 'hypothesis'])
+        val_dataset = val_dataset.remove_columns(['premise', 'hypothesis'])
+        test_dataset = test_dataset.remove_columns(['premise', 'hypothesis'])
+
+        train_dataset.set_format('torch')
+        val_dataset.set_format('torch')
+        test_dataset.set_format('torch')
+
+        print(f"Train dataset: {len(train_dataset)} samples")
+        print(f"Validation dataset: {len(val_dataset)} samples")
+        print(f"Test dataset: {len(test_dataset)} samples\n")
+
+        return train_dataset, val_dataset, test_dataset
+
+    def compute_metrics(self, eval_pred):
+        """Compute metrics for evaluation"""
+        predictions, labels = eval_pred
+        predictions = np.argmax(predictions, axis=1)
+
+        return {
+            'accuracy': accuracy_score(labels, predictions),
+            'precision': precision_score(labels, predictions, zero_division=0),
+            'recall': recall_score(labels, predictions, zero_division=0),
+            'f1': f1_score(labels, predictions, zero_division=0)
+        }
+
+    def train_model(self, train_dataset, val_dataset,
+                    num_epochs=3, batch_size=16, learning_rate=2e-5,
+                    warmup_steps=500, weight_decay=0.01,
+                    output_dir='./results_task3'):
+        """Train the transformer model"""
+        print(f"Training {self.model_name}")
+        print(f"Epochs: {num_epochs}, Batch size: {
+              batch_size}, Learning rate: {learning_rate}\n")
+
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            self.model_name,
+            num_labels=2
+        )
+
+        training_args = TrainingArguments(
+            output_dir=output_dir,
+            num_train_epochs=num_epochs,
+            per_device_train_batch_size=batch_size,
+            per_device_eval_batch_size=batch_size,
+            learning_rate=learning_rate,
+            warmup_steps=warmup_steps,
+            weight_decay=weight_decay,
+            logging_dir=f'{output_dir}/logs',
+            logging_steps=100,
+            eval_strategy='epoch',
+            save_strategy='epoch',
+            load_best_model_at_end=True,
+            metric_for_best_model='f1',
+            greater_is_better=True,
+            save_total_limit=2,
+            report_to='none',
+            seed=42
+        )
+
+        self.trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=val_dataset,
+            compute_metrics=self.compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
+        )
+
+        print("Starting training...")
+        self.trainer.train()
+        print("Training completed\n")
+
+        return self.trainer
+
+    def evaluate_model(self, test_dataset):
+        """Evaluate model on test set"""
+        print("Evaluating on test set...")
+
+        test_results = self.trainer.evaluate(test_dataset)
+
+        predictions = self.trainer.predict(test_dataset)
+        pred_labels = np.argmax(predictions.predictions, axis=1)
+        true_labels = predictions.label_ids
+
+        metrics = {
+            'accuracy': accuracy_score(true_labels, pred_labels),
+            'precision': precision_score(true_labels, pred_labels, zero_division=0),
+            'recall': recall_score(true_labels, pred_labels, zero_division=0),
+            'f1': f1_score(true_labels, pred_labels, zero_division=0)
+        }
+
+        pred_probs = torch.softmax(torch.tensor(
+            predictions.predictions), dim=1)[:, 1].numpy()
+        metrics['roc_auc'] = roc_auc_score(true_labels, pred_probs)
+
+        self.results = metrics
+
+        print(f"\nTest Results:")
+        print(f"Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Precision: {metrics['precision']:.4f}")
+        print(f"Recall: {metrics['recall']:.4f}")
+        print(f"F1 Score: {metrics['f1']:.4f}")
+        print(f"ROC AUC: {metrics['roc_auc']:.4f}\n")
+
+        cm = confusion_matrix(true_labels, pred_labels)
+
+        return metrics, cm, pred_labels, true_labels
+
+    def visualize_results(self, cm, task2_results=None):
+        """Visualize transformer model results"""
+        print("Generating visualizations\n")
+
         fig, ax = plt.subplots(figsize=(10, 8))
-
-        for model_key, model_name in [
-            ('logistic_regression', 'Logistic Regression'),
-            ('random_forest', 'Random Forest'),
-            ('svm', 'SVM'),
-            ('decision_tree', 'Decision Tree')
-        ]:
-            if model_key in results_dict and results_dict[model_key]['probabilities'] is not None:
-                y_prob = results_dict[model_key]['probabilities']
-                fpr, tpr, _ = roc_curve(y_test, y_prob)
-                roc_auc = auc(fpr, tpr)
-
-                ax.plot(fpr, tpr, label=f'{model_name} (AUC = {roc_auc:.3f})',
-                       linewidth=2)
-
-        ax.plot([0, 1], [0, 1], 'k--', linewidth=2, label='Random Classifier')
-        ax.set_xlabel('False Positive Rate', fontsize=12)
-        ax.set_ylabel('True Positive Rate', fontsize=12)
-        ax.set_title(f'ROC Curves - {feature_type} Features', fontsize=14, fontweight='bold')
-        ax.legend(loc='lower right', fontsize=10)
-        ax.grid(alpha=0.3)
-
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax,
+                    xticklabels=['Not Contradiction', 'Contradiction'],
+                    yticklabels=['Not Contradiction', 'Contradiction'])
+        ax.set_title('Confusion Matrix - Transformer Model',
+                     fontsize=14, fontweight='bold')
+        ax.set_ylabel('True Label', fontsize=12)
+        ax.set_xlabel('Predicted Label', fontsize=12)
         plt.tight_layout()
         plt.show()
-        return fig
 
-    def plot_precision_recall_curves(self, models_dict, results_dict, X_test, y_test, feature_type='TF-IDF'):
-        """Plot Precision-Recall curves for all models."""
-        fig, ax = plt.subplots(figsize=(10, 8))
+        if task2_results is not None:
+            fig, ax = plt.subplots(figsize=(14, 6))
 
-        for model_key, model_name in [
-            ('logistic_regression', 'Logistic Regression'),
-            ('random_forest', 'Random Forest'),
-            ('svm', 'SVM'),
-            ('decision_tree', 'Decision Tree')
-        ]:
-            if model_key in results_dict and results_dict[model_key]['probabilities'] is not None:
-                y_prob = results_dict[model_key]['probabilities']
-                precision, recall, _ = precision_recall_curve(y_test, y_prob)
-                avg_precision = average_precision_score(y_test, y_prob)
-
-                ax.plot(recall, precision, label=f'{model_name} (AP = {avg_precision:.3f})',
-                       linewidth=2)
-
-        baseline = y_test.sum() / len(y_test)
-        ax.axhline(y=baseline, color='k', linestyle='--', linewidth=2,
-                  label=f'Baseline (Random) = {baseline:.3f}')
-
-        ax.set_xlabel('Recall', fontsize=12)
-        ax.set_ylabel('Precision', fontsize=12)
-        ax.set_title(f'Precision-Recall Curves - {feature_type} Features', fontsize=14, fontweight='bold')
-        ax.legend(loc='best', fontsize=10)
-        ax.grid(alpha=0.3)
-        ax.set_xlim([0, 1])
-        ax.set_ylim([0, 1.05])
-
-        plt.tight_layout()
-        plt.show()
-        return fig
-
-    def plot_feature_importance(self, model, vectorizer, model_name, top_n=20):
-        """Plot top important features."""
-        fig, ax = plt.subplots(figsize=(12, 8))
-
-        feature_names = vectorizer.get_feature_names_out()
-
-        if hasattr(model, 'feature_importances_'):
-            importances = model.feature_importances_
-            indices = np.argsort(importances)[-top_n:]
-
-            ax.barh(range(top_n), importances[indices], color=self.colors['success'], alpha=0.7)
-            ax.set_yticks(range(top_n))
-            ax.set_yticklabels([feature_names[i] for i in indices])
-            ax.set_xlabel('Feature Importance')
-            ax.set_title(f'Top {top_n} Features - {model_name}')
-
-        elif hasattr(model, 'coef_'):
-            coefficients = model.coef_[0]
-            top_positive_idx = np.argsort(coefficients)[-top_n//2:]
-            top_negative_idx = np.argsort(coefficients)[:top_n//2]
-            top_idx = np.concatenate([top_negative_idx, top_positive_idx])
-
-            colors_list = ['#e74c3c' if coefficients[i] < 0 else '#2ecc71' for i in top_idx]
-
-            ax.barh(range(top_n), coefficients[top_idx], color=colors_list, alpha=0.7)
-            ax.set_yticks(range(top_n))
-            ax.set_yticklabels([feature_names[i] for i in top_idx], fontsize=9)
-            ax.set_xlabel('Coefficient Value')
-            ax.set_title(f'Top {top_n} Features - {model_name}')
-            ax.axvline(x=0, color='black', linestyle='--', linewidth=1)
-        else:
-            ax.text(0.5, 0.5, 'Feature importance not available for this model',
-                   ha='center', va='center', fontsize=14)
-            ax.set_title(f'Feature Importance - {model_name}')
-
-        plt.tight_layout()
-        plt.show()
-        return fig
-
-    def plot_metrics_comparison_table(self, tfidf_comparison, bow_comparison):
-        """Plot side-by-side comparison of TF-IDF vs BoW."""
-        fig, axes = plt.subplots(1, 2, figsize=(18, 6))
-
-        for idx, (comparison_df, feature_type) in enumerate([
-            (tfidf_comparison, 'TF-IDF'),
-            (bow_comparison, 'BoW')
-        ]):
-            models = comparison_df['model'].values
-            metrics = ['accuracy', 'precision', 'recall', 'f1']
+            models = list(task2_results.keys()) + ['Legal-BERT']
+            metrics_list = ['accuracy', 'precision', 'recall', 'f1']
 
             x = np.arange(len(models))
             width = 0.2
 
-            for i, metric in enumerate(metrics):
-                values = comparison_df[metric].values
-                offset = width * (i - 1.5)
-                axes[idx].bar(x + offset, values, width,
-                            label=metric.capitalize(), alpha=0.8)
+            for i, metric in enumerate(metrics_list):
+                scores = []
+                for model in models[:-1]:
+                    scores.append(task2_results[model][metric])
+                scores.append(self.results[metric])
 
-            axes[idx].set_xlabel('Model', fontsize=12)
-            axes[idx].set_ylabel('Score', fontsize=12)
-            axes[idx].set_title(f'{feature_type} Features - All Metrics', fontsize=14, fontweight='bold')
-            axes[idx].set_xticks(x)
-            axes[idx].set_xticklabels(models, rotation=45, ha='right')
-            axes[idx].legend(loc='lower right')
-            axes[idx].set_ylim(0, 1.05)
-            axes[idx].grid(axis='y', alpha=0.3)
+                ax.bar(x + i * width, scores, width, label=metric.capitalize())
 
-        plt.tight_layout()
-        plt.show()
-        return fig
+            ax.set_xlabel('Models', fontsize=12)
+            ax.set_ylabel('Score', fontsize=12)
+            ax.set_title('Model Comparison: Traditional ML vs Transformer',
+                         fontsize=14, fontweight='bold')
+            ax.set_xticks(x + width * 1.5)
+            ax.set_xticklabels(models, rotation=45, ha='right')
+            ax.legend()
+            ax.grid(axis='y', alpha=0.3)
+            plt.tight_layout()
+            plt.show()
 
+        results_df = pd.DataFrame({
+            'Metric': ['Accuracy', 'Precision', 'Recall', 'F1 Score', 'ROC AUC'],
+            'Score': [
+                self.results['accuracy'],
+                self.results['precision'],
+                self.results['recall'],
+                self.results['f1'],
+                self.results['roc_auc']
+            ]
+        })
 
-class T2ResultsAggregator:
-    """Aggregates and compares results from multiple models."""
+        html_table = results_df.to_html(
+            index=False, float_format=lambda x: f'{x:.4f}')
+        html_table = f"<h3>Transformer Model Performance</h3>{html_table}"
+        html_table = html_table.replace(
+            '<table', '<table style="border-collapse: collapse; width: 100%;"')
+        html_table = html_table.replace(
+            '<th>', '<th style="background-color: #3498db; color: white; padding: 10px;">')
+        html_table = html_table.replace(
+            '<td>', '<td style="padding: 8px; border: 1px solid #ddd;">')
 
-    def compare_models(self, results_dict):
-        """Create comparison DataFrame from evaluation results."""
+        display(HTML(html_table))
+
+    def compare_with_traditional_ml(self, task2_results):
+        """Create detailed comparison table"""
         comparison_data = []
 
-        for model_key, results in results_dict.items():
-            model_name = model_key.replace('_', ' ').title()
+        for model_name, metrics in task2_results.items():
             comparison_data.append({
-                'model': model_name,
-                'accuracy': results['accuracy'],
-                'precision': results['precision'],
-                'recall': results['recall'],
-                'f1': results['f1'],
-                'roc_auc': results.get('roc_auc', None)
+                'Model': model_name,
+                'Type': 'Traditional ML',
+                'Accuracy': metrics['accuracy'],
+                'Precision': metrics['precision'],
+                'Recall': metrics['recall'],
+                'F1': metrics['f1'],
+                'ROC AUC': metrics.get('roc_auc', 'N/A')
             })
 
+        comparison_data.append({
+            'Model': 'Legal-BERT',
+            'Type': 'Transformer',
+            'Accuracy': self.results['accuracy'],
+            'Precision': self.results['precision'],
+            'Recall': self.results['recall'],
+            'F1': self.results['f1'],
+            'ROC AUC': self.results['roc_auc']
+        })
+
         comparison_df = pd.DataFrame(comparison_data)
-        comparison_df = comparison_df.round(4)
+        comparison_df = comparison_df.sort_values(
+            'F1', ascending=False).reset_index(drop=True)
+
+        html_table = comparison_df.to_html(index=False, float_format=lambda x: f'{
+                                           x:.4f}' if isinstance(x, float) else x)
+        html_table = f"<h3>Comprehensive Model Comparison</h3>{html_table}"
+        html_table = html_table.replace(
+            '<table', '<table style="border-collapse: collapse; width: 100%;"')
+        html_table = html_table.replace(
+            '<th>', '<th style="background-color: #2ecc71; color: white; padding: 10px;">')
+        html_table = html_table.replace(
+            '<td>', '<td style="padding: 8px; border: 1px solid #ddd;">')
+
+        display(HTML(html_table))
 
         return comparison_df
 
-    def identify_best_models(self, comparison_df):
-        """Identify best model for each metric."""
-        best_models = {}
 
-        for metric in ['accuracy', 'precision', 'recall', 'f1']:
-            if metric in comparison_df.columns:
-                best_idx = comparison_df[metric].idxmax()
-                best_models[metric] = {
-                    'model': comparison_df.loc[best_idx, 'model'],
-                    'value': comparison_df.loc[best_idx, metric]
-                }
+def task_3_test():
+    """Test function for Task 3: Transformer-based Classifier"""
+    print("="*80)
+    print("TASK 3: TRANSFORMER-BASED CLASSIFIER")
+    print("="*80)
+    print()
 
-        return best_models
+    loader = DataLoader(
+        train_path='data/English dataset/train.jsonl',
+        test_path='data/English dataset/test.jsonl'
+    )
+    train_data, test_data = loader.load_all()
 
-    def create_summary_table(self, tfidf_comparison, bow_comparison):
-        """Create comprehensive summary comparing TF-IDF and BoW."""
-        tfidf_comparison = tfidf_comparison.copy()
-        bow_comparison = bow_comparison.copy()
+    task1 = Task1(train_data, test_data)
+    train_df, val_df, test_df = task1.prepare_data(binary_labels=True)
 
-        tfidf_comparison['feature_type'] = 'TF-IDF'
-        bow_comparison['feature_type'] = 'BoW'
+    print("Training Task 2 models for comparison...")
+    task2 = Task2(train_df, val_df, test_df)
+    X_train, X_val, X_test, y_train, y_val, y_test = task2.prepare_text_features(
+        max_features=5000)
+    task2.train_logistic_regression(X_train, y_train, X_val, y_val)
+    task2.train_random_forest(X_train, y_train, X_val, y_val)
+    task2.train_svm(X_train, y_train, X_val, y_val)
+    task2.train_decision_tree(X_train, y_train, X_val, y_val)
+    task2_results = task2.evaluate_on_test(X_test, y_test)
 
-        summary = pd.concat([tfidf_comparison, bow_comparison], ignore_index=True)
-        summary = summary[['model', 'feature_type', 'accuracy', 'precision', 'recall', 'f1', 'roc_auc']]
+    task3 = Task3(train_df, val_df, test_df,
+                  model_name='nlpaueb/legal-bert-base-uncased')
 
-        return summary
+    train_dataset, val_dataset, test_dataset = task3.prepare_datasets(
+        max_length=512)
 
-    def aggregate_cv_results(self, tuning_results):
-        """Create summary of cross-validation results."""
-        cv_summary = []
+    task3.train_model(
+        train_dataset,
+        val_dataset,
+        num_epochs=3,
+        batch_size=16,
+        learning_rate=2e-5
+    )
 
-        for model_name, results in tuning_results.items():
-            model_display = model_name.replace('_', ' ').title()
-            cv_summary.append({
-                'Model': model_display,
-                'Best CV F1': results['best_score'],
-                'Best Parameters': str(results['best_params'])
+    metrics, cm, pred_labels, true_labels = task3.evaluate_model(test_dataset)
+
+    task3.visualize_results(cm, task2_results)
+
+    comparison_df = task3.compare_with_traditional_ml(task2_results)
+
+    print("="*80)
+    print("TASK 3 COMPLETED SUCCESSFULLY")
+    print("="*80)
+    print()
+
+    return task3, metrics
+
+
+class Task4:
+    """Task 4: Sentence Embedding Model for Contradiction Search"""
+
+    def __init__(self, train_df, val_df, test_df, base_model='nlpaueb/legal-bert-base-uncased'):
+        self.train_df = train_df.copy()
+        self.val_df = val_df.copy()
+        self.test_df = test_df.copy()
+        self.base_model = base_model
+        self.model = None
+        self.results = {}
+        self.corpus_embeddings = None
+        self.corpus_texts = None
+
+    def prepare_training_data(self):
+        """Prepare data for sentence transformer training"""
+        print("Preparing training data for sentence transformer")
+
+        train_examples = []
+        for idx, row in self.train_df.iterrows():
+            label = float(row['binary_label'])
+            train_examples.append(InputExample(
+                texts=[row['premise'], row['hypothesis']],
+                label=label
+            ))
+
+        val_examples = []
+        for idx, row in self.val_df.iterrows():
+            label = float(row['binary_label'])
+            val_examples.append(InputExample(
+                texts=[row['premise'], row['hypothesis']],
+                label=label
+            ))
+
+        print(f"Created {len(train_examples)} training examples")
+        print(f"Created {len(val_examples)} validation examples\n")
+
+        return train_examples, val_examples
+
+    def train_sentence_transformer(self, train_examples, val_examples,
+                                   num_epochs=3, batch_size=16,
+                                   output_dir='./sentence_transformer_model'):
+        """Train or fine-tune a sentence transformer model"""
+        print(f"Training Sentence Transformer based on {self.base_model}")
+        print(f"Epochs: {num_epochs}, Batch size: {batch_size}\n")
+
+        word_embedding_model = st_models.Transformer(
+            self.base_model, max_seq_length=256)
+        pooling_model = st_models.Pooling(
+            word_embedding_model.get_word_embedding_dimension())
+
+        self.model = SentenceTransformer(
+            modules=[word_embedding_model, pooling_model])
+
+        device = 'cpu'
+        if torch.cuda.is_available():
+            device = 'cuda'
+        elif torch.backends.mps.is_available():
+            print("MPS detected but using CPU to avoid memory issues")
+            device = 'cpu'
+
+        self.model = self.model.to(device)
+        print(f"Using device: {device}\n")
+
+        train_dataloader = STDataLoader(
+            train_examples, shuffle=True, batch_size=batch_size)
+
+        train_loss = losses.CosineSimilarityLoss(self.model)
+
+        evaluator = evaluation.EmbeddingSimilarityEvaluator.from_input_examples(
+            val_examples, name='validation'
+        )
+
+        warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)
+
+        print("Starting training...")
+        self.model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            evaluator=evaluator,
+            epochs=num_epochs,
+            evaluation_steps=500,
+            warmup_steps=warmup_steps,
+            output_path=output_dir,
+            show_progress_bar=True
+        )
+
+        print("Training completed\n")
+
+        return self.model
+
+    def create_corpus_embeddings(self):
+        """Create embeddings for all sections in the dataset"""
+        print("Creating corpus embeddings for retrieval")
+
+        all_df = pd.concat([self.train_df, self.val_df,
+                           self.test_df], ignore_index=True)
+
+        all_premises = all_df['premise'].unique().tolist()
+        all_hypotheses = all_df['hypothesis'].unique().tolist()
+
+        self.corpus_texts = list(set(all_premises + all_hypotheses))
+
+        print(f"Encoding {len(self.corpus_texts)} unique text sections...")
+        self.corpus_embeddings = self.model.encode(
+            self.corpus_texts,
+            convert_to_tensor=True,
+            show_progress_bar=True,
+            batch_size=32,
+            device='cpu'
+        )
+
+        print(f"Created embeddings with shape: {
+              self.corpus_embeddings.shape}\n")
+
+        return self.corpus_embeddings, self.corpus_texts
+
+    def retrieve_contradictions(self, query_text, k=5):
+        """Retrieve top k most similar (potentially contradicting) sections"""
+        query_embedding = self.model.encode(
+            query_text, convert_to_tensor=True, device='cpu')
+
+        cos_scores = torch.nn.functional.cosine_similarity(
+            query_embedding.unsqueeze(0),
+            self.corpus_embeddings
+        )
+
+        top_results = torch.topk(cos_scores, k=min(k, len(self.corpus_texts)))
+
+        results = []
+        for score, idx in zip(top_results[0], top_results[1]):
+            results.append({
+                'text': self.corpus_texts[idx],
+                'similarity_score': score.item(),
+                'index': idx.item()
             })
 
-        cv_df = pd.DataFrame(cv_summary)
-        cv_df = cv_df.round(4)
+        return results
 
-        return cv_df
+    def evaluate_retrieval(self, test_df, k_values=[1, 5, 10]):
+        """Evaluate retrieval performance"""
+        print("Evaluating retrieval performance")
 
+        results = {k: {'recall': 0, 'precision': 0, 'total': 0}
+                   for k in k_values}
 
-def t2_run_full_pipeline(task1_results, tune_hyperparams=True, cv_folds=5, random_state=42):
-    """
-    Execute complete Task 2 pipeline for traditional ML classifiers.
+        contradiction_pairs = test_df[test_df['binary_label'] == 1]
 
-    Args:
-        task1_results: Dictionary from t1_run_full_pipeline()
-        tune_hyperparams: Whether to perform hyperparameter tuning
-        cv_folds: Number of cross-validation folds
-        random_state: Random seed for reproducibility
+        print(f"Evaluating on {
+              len(contradiction_pairs)} contradiction pairs\n")
 
-    Returns:
-        Dictionary containing trained models, evaluation results, and visualizations
-    """
+        for idx, row in contradiction_pairs.iterrows():
+            query = row['premise']
+            true_contradiction = row['hypothesis']
 
-    display(HTML("<h2>Task 2: Traditional Machine Learning Models</h2>"))
+            for k in k_values:
+                retrieved = self.retrieve_contradictions(query, k=k)
+                retrieved_texts = [r['text'] for r in retrieved]
 
-    # Initialize components
-    trainer = T2ModelTrainer(random_state=random_state)
-    tuner = T2HyperparameterTuner(cv=cv_folds, random_state=random_state)
-    evaluator = T2ModelEvaluator()
-    visualizer = T2Visualizer()
-    aggregator = T2ResultsAggregator()
+                if true_contradiction in retrieved_texts:
+                    results[k]['recall'] += 1
 
-    # Extract data from Task 1 results
-    X_train_tfidf = task1_results['X_train_tfidf']
-    X_val_tfidf = task1_results['X_val_tfidf']
-    X_test_tfidf = task1_results['X_test_tfidf']
+                results[k]['total'] += 1
 
-    X_train_bow = task1_results['X_train_bow']
-    X_val_bow = task1_results['X_val_bow']
-    X_test_bow = task1_results['X_test_bow']
+        for k in k_values:
+            if results[k]['total'] > 0:
+                results[k]['recall'] = results[k]['recall'] / \
+                    results[k]['total']
 
-    y_train = task1_results['y_train']
-    y_val = task1_results['y_val']
-    y_test = task1_results['y_test']
+        self.results = results
 
-    tfidf_vectorizer = task1_results['tfidf_vectorizer']
-    bow_vectorizer = task1_results['bow_vectorizer']
+        print("Retrieval Results:")
+        for k in k_values:
+            print(f"Recall@{k}: {results[k]['recall']:.4f}")
+        print()
 
-    results = {
-        'models_tfidf': {},
-        'models_bow': {},
-        'val_results_tfidf': {},
-        'val_results_bow': {},
-        'test_results_tfidf': {},
-        'test_results_bow': {},
-        'tuning_results_tfidf': {},
-        'tuning_results_bow': {}
-    }
+        return results
 
-    # ========================================================================
-    # PHASE 1: TF-IDF FEATURES
-    # ========================================================================
+    def visualize_results(self):
+        """Visualize retrieval performance"""
+        print("Generating retrieval visualizations\n")
 
-    display(HTML("<h3>Part 1: TF-IDF Features</h3>"))
+        k_values = sorted(self.results.keys())
+        recall_scores = [self.results[k]['recall'] for k in k_values]
 
-    # Train baseline models
-    models_tfidf = {}
-    models_tfidf['logistic_regression'] = trainer.train_logistic_regression(X_train_tfidf, y_train)
-    models_tfidf['random_forest'] = trainer.train_random_forest(X_train_tfidf, y_train)
-    models_tfidf['svm'] = trainer.train_svm(X_train_tfidf, y_train)
-    models_tfidf['decision_tree'] = trainer.train_decision_tree(X_train_tfidf, y_train)
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(k_values, recall_scores, marker='o',
+                linewidth=2, markersize=8, color='#2ecc71')
+        ax.set_xlabel('K (Number of Retrieved Documents)', fontsize=12)
+        ax.set_ylabel('Recall Score', fontsize=12)
+        ax.set_title('Retrieval Performance: Recall@K',
+                     fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.set_xticks(k_values)
 
-    # Hyperparameter tuning
-    if tune_hyperparams:
-        display(HTML("<h4>Hyperparameter Tuning Progress</h4>"))
+        for k, recall in zip(k_values, recall_scores):
+            ax.text(k, recall + 0.01, f'{recall:.3f}',
+                    ha='center', fontsize=10, fontweight='bold')
 
-        tuning_progress = []
-        tuning_results_tfidf = {}
+        plt.tight_layout()
+        plt.show()
 
-        for model_type in ['logistic_regression', 'random_forest', 'svm', 'decision_tree']:
-
-            if model_type == 'logistic_regression':
-                base_model = LogisticRegression(random_state=random_state)
-            elif model_type == 'random_forest':
-                base_model = RandomForestClassifier(random_state=random_state, n_jobs=-1)
-            elif model_type == 'svm':
-                base_model = SVC(probability=True, random_state=random_state)
-            else:
-                base_model = DecisionTreeClassifier(random_state=random_state)
-
-            param_grid = tuner.get_param_grid(model_type)
-            tuning_result = tuner.tune_model(base_model, param_grid, X_train_tfidf, y_train)
-
-            tuning_results_tfidf[model_type] = tuning_result
-            models_tfidf[model_type] = tuning_result['best_model']
-
-            tuning_progress.append({
-                'Model': model_type.replace('_', ' ').title(),
-                'Best CV F1': f"{tuning_result['best_score']:.4f}",
-                'Parameters Tested': len(tuning_result['cv_results'])
-            })
-
-        display(pd.DataFrame(tuning_progress))
-        results['tuning_results_tfidf'] = tuning_results_tfidf
-
-    # Evaluate on validation set
-    val_results_tfidf = {}
-    for model_key, model in models_tfidf.items():
-        val_results_tfidf[model_key] = evaluator.evaluate(model, X_val_tfidf, y_val, 'validation')
-
-    results['models_tfidf'] = models_tfidf
-    results['val_results_tfidf'] = val_results_tfidf
-
-    # Display validation results
-    comparison_tfidf_val = aggregator.compare_models(val_results_tfidf)
-    display(HTML("<h4>Validation Set Performance (TF-IDF)</h4>"))
-    display(comparison_tfidf_val)
-
-    # ========================================================================
-    # PHASE 2: BAG-OF-WORDS FEATURES
-    # ========================================================================
-
-    display(HTML("<h3>Part 2: Bag-of-Words Features</h3>"))
-
-    # Train baseline models
-    models_bow = {}
-    models_bow['logistic_regression'] = trainer.train_logistic_regression(X_train_bow, y_train)
-    models_bow['random_forest'] = trainer.train_random_forest(X_train_bow, y_train)
-    models_bow['svm'] = trainer.train_svm(X_train_bow, y_train)
-    models_bow['decision_tree'] = trainer.train_decision_tree(X_train_bow, y_train)
-
-    # Hyperparameter tuning
-    if tune_hyperparams:
-        tuning_progress = []
-        tuning_results_bow = {}
-
-        for model_type in ['logistic_regression', 'random_forest', 'svm', 'decision_tree']:
-
-            if model_type == 'logistic_regression':
-                base_model = LogisticRegression(random_state=random_state)
-            elif model_type == 'random_forest':
-                base_model = RandomForestClassifier(random_state=random_state, n_jobs=-1)
-            elif model_type == 'svm':
-                base_model = SVC(probability=True, random_state=random_state)
-            else:
-                base_model = DecisionTreeClassifier(random_state=random_state)
-
-            param_grid = tuner.get_param_grid(model_type)
-            tuning_result = tuner.tune_model(base_model, param_grid, X_train_bow, y_train)
-
-            tuning_results_bow[model_type] = tuning_result
-            models_bow[model_type] = tuning_result['best_model']
-
-            tuning_progress.append({
-                'Model': model_type.replace('_', ' ').title(),
-                'Best CV F1': f"{tuning_result['best_score']:.4f}",
-                'Parameters Tested': len(tuning_result['cv_results'])
-            })
-
-        display(pd.DataFrame(tuning_progress))
-        results['tuning_results_bow'] = tuning_results_bow
-
-    # Evaluate on validation set
-    val_results_bow = {}
-    for model_key, model in models_bow.items():
-        val_results_bow[model_key] = evaluator.evaluate(model, X_val_bow, y_val, 'validation')
-
-    results['models_bow'] = models_bow
-    results['val_results_bow'] = val_results_bow
-
-    # Display validation results
-    comparison_bow_val = aggregator.compare_models(val_results_bow)
-    display(HTML("<h4>Validation Set Performance (BoW)</h4>"))
-    display(comparison_bow_val)
-
-    # ========================================================================
-    # PHASE 3: TEST SET EVALUATION (FINAL)
-    # ========================================================================
-
-    display(HTML("<h3>Final Test Set Evaluation</h3>"))
-
-    # Evaluate models on test set
-    test_results_tfidf = {}
-    for model_key, model in models_tfidf.items():
-        test_results_tfidf[model_key] = evaluator.evaluate(model, X_test_tfidf, y_test, 'test')
-
-    test_results_bow = {}
-    for model_key, model in models_bow.items():
-        test_results_bow[model_key] = evaluator.evaluate(model, X_test_bow, y_test, 'test')
-
-    results['test_results_tfidf'] = test_results_tfidf
-    results['test_results_bow'] = test_results_bow
-
-    # Create comparison tables
-    comparison_tfidf_test = aggregator.compare_models(test_results_tfidf)
-    comparison_bow_test = aggregator.compare_models(test_results_bow)
-
-    display(HTML("<h4>Test Set Performance (TF-IDF)</h4>"))
-    display(comparison_tfidf_test)
-
-    display(HTML("<h4>Test Set Performance (BoW)</h4>"))
-    display(comparison_bow_test)
-
-    # Overall summary
-    summary_table = aggregator.create_summary_table(comparison_tfidf_test, comparison_bow_test)
-    display(HTML("<h4>Overall Performance Summary</h4>"))
-    display(summary_table)
-
-    # Identify best models
-    best_tfidf = aggregator.identify_best_models(comparison_tfidf_test)
-    best_bow = aggregator.identify_best_models(comparison_bow_test)
-
-    display(HTML("<h4>Best Models by Metric</h4>"))
-    best_models_data = []
-    for metric in ['accuracy', 'precision', 'recall', 'f1']:
-        best_models_data.append({
-            'Metric': metric.upper(),
-            'Best TF-IDF Model': f"{best_tfidf[metric]['model']} ({best_tfidf[metric]['value']:.4f})",
-            'Best BoW Model': f"{best_bow[metric]['model']} ({best_bow[metric]['value']:.4f})"
+        results_df = pd.DataFrame({
+            'K': k_values,
+            'Recall': recall_scores
         })
-    display(pd.DataFrame(best_models_data))
 
-    # ========================================================================
-    # PHASE 4: VISUALIZATIONS
-    # ========================================================================
+        html_table = results_df.to_html(
+            index=False, float_format=lambda x: f'{x:.4f}')
+        html_table = f"<h3>Retrieval Performance Metrics</h3>{html_table}"
+        html_table = html_table.replace(
+            '<table', '<table style="border-collapse: collapse; width: 100%;"')
+        html_table = html_table.replace(
+            '<th>', '<th style="background-color: #2ecc71; color: white; padding: 10px;">')
+        html_table = html_table.replace(
+            '<td>', '<td style="padding: 8px; border: 1px solid #ddd;">')
 
-    display(HTML("<h3>Model Visualizations</h3>"))
+        display(HTML(html_table))
 
-    # Confusion matrices
-    display(HTML("<h4>Confusion Matrices</h4>"))
-    fig_cm_tfidf = visualizer.plot_confusion_matrices_grid(test_results_tfidf, 'TF-IDF')
-    fig_cm_bow = visualizer.plot_confusion_matrices_grid(test_results_bow, 'BoW')
+    def demonstrate_retrieval(self, num_examples=3):
+        """Demonstrate retrieval with example queries"""
+        print("Demonstrating retrieval with examples\n")
 
-    # Model comparison
-    display(HTML("<h4>Performance Metrics Comparison</h4>"))
-    fig_comp_tfidf = visualizer.plot_model_comparison(comparison_tfidf_test, 'TF-IDF')
-    fig_comp_bow = visualizer.plot_model_comparison(comparison_bow_test, 'BoW')
+        test_contradictions = self.test_df[self.test_df['binary_label'] == 1].head(
+            num_examples)
 
-    # Side-by-side metrics comparison
-    fig_metrics_table = visualizer.plot_metrics_comparison_table(comparison_tfidf_test, comparison_bow_test)
+        for idx, row in test_contradictions.iterrows():
+            query = row['premise']
+            true_contradiction = row['hypothesis']
 
-    # ROC curves
-    display(HTML("<h4>ROC Curves</h4>"))
-    fig_roc_tfidf = visualizer.plot_roc_curves(models_tfidf, test_results_tfidf, X_test_tfidf, y_test, 'TF-IDF')
-    fig_roc_bow = visualizer.plot_roc_curves(models_bow, test_results_bow, X_test_bow, y_test, 'BoW')
+            retrieved = self.retrieve_contradictions(query, k=5)
 
-    # Precision-Recall curves
-    display(HTML("<h4>Precision-Recall Curves</h4>"))
-    fig_pr_tfidf = visualizer.plot_precision_recall_curves(models_tfidf, test_results_tfidf, X_test_tfidf, y_test, 'TF-IDF')
-    fig_pr_bow = visualizer.plot_precision_recall_curves(models_bow, test_results_bow, X_test_bow, y_test, 'BoW')
+            html = f"""
+            <div style="border: 2px solid #3498db; padding: 15px; margin: 20px 0; border-radius: 5px;">
+                <h4 style="color: #3498db;">Example Query:</h4>
+                <p><b>Query Text:</b> {query[:300]}...</p>
+                <p><b>True Contradiction:</b> {true_contradiction[:300]}...</p>
+                <h4 style="color: #2ecc71;">Top 5 Retrieved Sections:</h4>
+                <ol>
+            """
 
-    # Feature importance
-    display(HTML("<h4>Feature Importance</h4>"))
+            for i, result in enumerate(retrieved):
+                color = '#2ecc71' if result['text'] == true_contradiction else '#95a5a6'
+                marker = '✓ TRUE MATCH' if result['text'] == true_contradiction else ''
+                html += f"""
+                    <li style="margin: 10px 0;">
+                        <b style="color: {color};">Similarity: {result['similarity_score']:.4f} {marker}</b><br>
+                        {result['text'][:200]}...
+                    </li>
+                """
 
-    # For Logistic Regression (TF-IDF)
-    fig_imp_lr_tfidf = visualizer.plot_feature_importance(
-        models_tfidf['logistic_regression'],
-        tfidf_vectorizer,
-        'Logistic Regression (TF-IDF)',
-        top_n=20
+            html += """
+                </ol>
+            </div>
+            """
+
+            display(HTML(html))
+
+
+def task_4_test():
+    """Test function for Task 4: Sentence Embedding Model for Contradiction Search"""
+    print("="*80)
+    print("TASK 4: SENTENCE EMBEDDING MODEL FOR CONTRADICTION SEARCH")
+    print("="*80)
+    print()
+
+    loader = DataLoader(
+        train_path='data/English dataset/train.jsonl',
+        test_path='data/English dataset/test.jsonl'
+    )
+    train_data, test_data = loader.load_all()
+
+    task1 = Task1(train_data, test_data)
+    train_df, val_df, test_df = task1.prepare_data(binary_labels=True)
+
+    task4 = Task4(train_df, val_df, test_df,
+                  base_model='nlpaueb/legal-bert-base-uncased')
+
+    train_examples, val_examples = task4.prepare_training_data()
+
+    task4.train_sentence_transformer(
+        train_examples,
+        val_examples,
+        num_epochs=2,
+        batch_size=8
     )
 
-    # For Random Forest (TF-IDF)
-    fig_imp_rf_tfidf = visualizer.plot_feature_importance(
-        models_tfidf['random_forest'],
-        tfidf_vectorizer,
-        'Random Forest (TF-IDF)',
-        top_n=20
-    )
+    corpus_embeddings, corpus_texts = task4.create_corpus_embeddings()
 
-    # ========================================================================
-    # DETAILED CLASSIFICATION REPORTS
-    # ========================================================================
-    display(HTML("<h3>Detailed Classification Reports</h3>"))
+    retrieval_results = task4.evaluate_retrieval(
+        test_df, k_values=[1, 5, 10, 20])
 
-    # TF-IDF Reports
-    display(HTML("<h4>TF-IDF Models - Test Set</h4>"))
-    for model_key in ['logistic_regression', 'random_forest', 'svm', 'decision_tree']:
-        model_name = model_key.replace('_', ' ').title()
-        display(HTML(f"<h5>{model_name}</h5>"))
+    task4.visualize_results()
 
-        report_df = evaluator.create_classification_report_df(
-            test_results_tfidf[model_key]['classification_report']
-        )
-        display(report_df)
+    task4.demonstrate_retrieval(num_examples=3)
 
-        cm_df = evaluator.create_confusion_matrix_df(
-            test_results_tfidf[model_key]['confusion_matrix']
-        )
-        display(HTML("<p><b>Confusion Matrix:</b></p>"))
-        display(cm_df)
+    print("="*80)
+    print("TASK 4 COMPLETED SUCCESSFULLY")
+    print("="*80)
+    print()
 
-    # BoW Reports
-    display(HTML("<h4>Bag-of-Words Models - Test Set</h4>"))
-    for model_key in ['logistic_regression', 'random_forest', 'svm', 'decision_tree']:
-        model_name = model_key.replace('_', ' ').title()
-        display(HTML(f"<h5>{model_name}</h5>"))
-
-        report_df = evaluator.create_classification_report_df(
-            test_results_bow[model_key]['classification_report']
-        )
-        display(report_df)
-
-        cm_df = evaluator.create_confusion_matrix_df(
-            test_results_bow[model_key]['confusion_matrix']
-        )
-        display(HTML("<p><b>Confusion Matrix:</b></p>"))
-        display(cm_df)
-
-    # ========================================================================
-    # HYPERPARAMETER TUNING SUMMARY
-    # ========================================================================
-    if tune_hyperparams:
-        display(HTML("<h3>Hyperparameter Tuning Summary</h3>"))
-
-        cv_summary_tfidf = aggregator.aggregate_cv_results(tuning_results_tfidf)
-        cv_summary_bow = aggregator.aggregate_cv_results(tuning_results_bow)
-
-        display(HTML("<h4>TF-IDF - Best Hyperparameters</h4>"))
-        display(cv_summary_tfidf)
-
-        display(HTML("<h4>BoW - Best Hyperparameters</h4>"))
-        display(cv_summary_bow)
-
-    # Store all results
-    results.update({
-        'comparison_tfidf_val': comparison_tfidf_val,
-        'comparison_bow_val': comparison_bow_val,
-        'comparison_tfidf_test': comparison_tfidf_test,
-        'comparison_bow_test': comparison_bow_test,
-        'summary_table': summary_table,
-        'best_models_tfidf': best_tfidf,
-        'best_models_bow': best_bow
-    })
-
-    # Final summary with best overall model
-    all_f1_scores = []
-    all_f1_scores.extend([(f"{m} (TF-IDF)", comparison_tfidf_test[comparison_tfidf_test['model']==m]['f1'].values[0])
-                          for m in comparison_tfidf_test['model']])
-    all_f1_scores.extend([(f"{m} (BoW)", comparison_bow_test[comparison_bow_test['model']==m]['f1'].values[0])
-                          for m in comparison_bow_test['model']])
-
-    best_overall = max(all_f1_scores, key=lambda x: x[1])
-
-    final_summary = pd.DataFrame([{
-        'Best Overall Model': best_overall[0],
-        'F1 Score': f"{best_overall[1]:.4f}",
-        'Feature Type': 'TF-IDF' if 'TF-IDF' in best_overall[0] else 'BoW'
-    }])
-
-    display(HTML("<h3>🏆 Task 2 Summary</h3>"))
-    display(final_summary)
-
-    return results
-
-
-if __name__ == "__main__":
-    # Run Task 1
-    task1_results = t1_run_full_pipeline(dataset_choice='english')
-
-    # Run Task 2
-    task2_results = t2_run_full_pipeline(
-        task1_results=task1_results,
-        tune_hyperparams=True,
-        cv_folds=5,
-        random_state=42
-    )
+    return task4, retrieval_results
