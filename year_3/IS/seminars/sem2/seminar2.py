@@ -69,11 +69,7 @@ def t1_check_missing_values(df):
                 'Issue Rate (%)': f'{(total_issues / len(df) * 100):.2f}%'
             })
 
-    quality_df = pd.DataFrame(quality_data)
-    display(HTML("<h3>Data Quality Check</h3>"))
-    display(quality_df)
-
-    return quality_df
+    return pd.DataFrame(quality_data)
 
 
 def t1_check_duplicates(df):
@@ -96,19 +92,11 @@ def t1_check_duplicates(df):
         ]
     }
 
-    dup_df = pd.DataFrame(dup_data)
-    display(HTML("<h3>Duplicate Analysis</h3>"))
-    display(dup_df)
-
-    return {
-        'exact_duplicates': duplicates,
-        'text_pair_duplicates': text_pair_dupes,
-        'premise_duplicates': premise_dupes
-    }
+    return pd.DataFrame(dup_data)
 
 
 def t1_compute_statistics(df):
-    """Compute and display comprehensive dataset statistics."""
+    """Compute comprehensive dataset statistics."""
     overview_data = {
         'Total Examples': [len(df)],
         'Unique Documents': [df['doc_id'].nunique()],
@@ -128,9 +116,7 @@ def t1_compute_statistics(df):
     overview_df = pd.DataFrame(overview_data).T.reset_index()
     overview_df.columns = ['Metric', 'Value']
 
-    display(HTML("<h2>Dataset Overview</h2>"))
-    display(overview_df)
-
+    label_df = None
     if 'binary_label' in df.columns:
         binary_counts = df['binary_label'].value_counts()
         binary_pct = (df['binary_label'].value_counts(normalize=True) * 100)
@@ -142,12 +128,7 @@ def t1_compute_statistics(df):
             'Percentage': [f"{binary_pct[0]:.2f}%", f"{binary_pct[1]:.2f}%"]
         })
 
-        display(HTML("<h3>Binary Classification Distribution</h3>"))
-        display(label_df)
-
-        return overview_df, label_df
-
-    return overview_df, None
+    return overview_df, label_df
 
 
 def t1_analyze_text_lengths(df):
@@ -339,8 +320,8 @@ def t1_plot_length_by_label(df, title='Text Length by Label'):
     return fig
 
 
-def t1_display_examples(df, n_examples=5, label_filter=None):
-    """Display example contradictions from the dataset."""
+def t1_get_examples(df, n_examples=5, label_filter=None):
+    """Get example contradictions from the dataset."""
     if label_filter is not None:
         if 'binary_label' in df.columns:
             sample_df = df[df['binary_label'] == label_filter].sample(
@@ -368,12 +349,10 @@ def t1_display_examples(df, n_examples=5, label_filter=None):
             example['Binary Label'] = 'Contradiction' if row['binary_label'] == 1 else 'Non-Contradiction'
         examples_data.append(example)
 
-    examples_df = pd.DataFrame(examples_data)
-    display(HTML("<h3>Example Contradictions</h3>"))
-    display(examples_df)
+    return pd.DataFrame(examples_data)
 
 
-def t1_create_summary_table(df):
+def t1_create_text_length_stats(df):
     """Create text length statistics summary."""
     text_stats = []
 
@@ -389,11 +368,7 @@ def t1_create_summary_table(df):
         }
         text_stats.append(stats_row)
 
-    summary_df = pd.DataFrame(text_stats)
-    display(HTML("<h3>Text Length Statistics</h3>"))
-    display(summary_df)
-
-    return summary_df
+    return pd.DataFrame(text_stats)
 
 
 
@@ -407,11 +382,24 @@ def t1_run_full_pipeline(dataset_choice='english'):
 
     df = t1_transform_to_binary(df)
     df = t1_combine_text_pairs(df)
-
-    missing_analysis = t1_check_missing_values(df)
-    duplicate_analysis = t1_check_duplicates(df)
-    stats, label_df = t1_compute_statistics(df)
     df = t1_analyze_text_lengths(df)
+
+    quality_df = t1_check_missing_values(df)
+    duplicate_df = t1_check_duplicates(df)
+    overview_df, label_df = t1_compute_statistics(df)
+
+    display(HTML("<h3>Data Quality Check</h3>"))
+    display(quality_df)
+
+    display(HTML("<h3>Duplicate Analysis</h3>"))
+    display(duplicate_df)
+
+    display(HTML("<h2>Dataset Overview</h2>"))
+    display(overview_df)
+
+    if label_df is not None:
+        display(HTML("<h3>Binary Classification Distribution</h3>"))
+        display(label_df)
 
     train_df, val_df, test_df = t1_split_data(df)
 
@@ -426,8 +414,14 @@ def t1_run_full_pipeline(dataset_choice='english'):
     fig_labels = t1_plot_label_distribution(df)
     fig_lengths = t1_plot_text_lengths(df)
     fig_length_by_label = t1_plot_length_by_label(df)
-    t1_display_examples(df, n_examples=5, label_filter=1)
-    summary_table = t1_create_summary_table(df)
+
+    examples_df = t1_get_examples(df, n_examples=5, label_filter=1)
+    display(HTML("<h3>Example Contradictions</h3>"))
+    display(examples_df)
+
+    text_stats_df = t1_create_text_length_stats(df)
+    display(HTML("<h3>Text Length Statistics</h3>"))
+    display(text_stats_df)
 
     results = {
         'original_df': df,
@@ -445,8 +439,11 @@ def t1_run_full_pipeline(dataset_choice='english'):
         'y_train': train_df['binary_label'].values,
         'y_val': val_df['binary_label'].values,
         'y_test': test_df['binary_label'].values,
-        'statistics': stats,
-        'summary_table': summary_table
+        'quality_df': quality_df,
+        'duplicate_df': duplicate_df,
+        'overview_df': overview_df,
+        'label_df': label_df,
+        'text_stats_df': text_stats_df
     }
 
     return results
